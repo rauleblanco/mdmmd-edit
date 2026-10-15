@@ -239,7 +239,7 @@ mdmmd-edit/
 This project is licensed under the [MIT License](LICENSE) — Copyright (c) 2026 Raul E. Blanco (rauleblanco).
 
 > **Artificial Intelligence Co-Authorship & Vibe Coding Attribution:**
-> This application was entirely vibe coded with Gemini 3.9 Flash Medium (Google DeepMind Advanced Agentic Coding).
+> This application was entirely vibe coded with Gemini 3.8 Flash Medium (Google DeepMind Advanced Agentic Coding).
 
 - **Official Website**: [https://rauleblanco.com/mdmmd-edit](https://rauleblanco.com/mdmmd-edit)
 - **GitHub Repository**: [https://github.com/rauleblanco/mdmmd-edit](https://github.com/rauleblanco/mdmmd-edit)
