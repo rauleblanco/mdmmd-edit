@@ -75,7 +75,12 @@ jobs:
 
       - name: Package macOS (Ad-hoc Universal & Apple Silicon DMG & Tarball)
         if: matrix.platform == 'macos-latest'
-        run: npx electron-builder --mac --universal --arm64 --publish never
+        run: |
+          if [ -d "build/icon.iconset" ]; then
+            echo "Building native Apple ICNS via iconutil..."
+            iconutil -c icns build/icon.iconset -o build/icon.icns
+          fi
+          npx electron-builder --mac --universal --arm64 --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: '-'

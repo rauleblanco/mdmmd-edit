@@ -383,7 +383,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps): JSX.El
                     <span>Artificial Intelligence Co-Authorship &amp; Vibe Coding Attribution</span>
                   </div>
                   <p className="text-[10.5px] leading-relaxed text-muted-foreground pl-5">
-                    This application was entirely vibe coded with Gemini 3.9 Flash Medium (Google DeepMind Advanced Agentic Coding).
+                    This application was entirely vibe coded with Gemini 3.8 Flash Medium (Google DeepMind Advanced Agentic Coding).
                   </p>
                 </div>
               </div>

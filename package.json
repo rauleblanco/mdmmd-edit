@@ -15,7 +15,7 @@
   "homepage": "https://github.com/rauleblanco/mdmmd-edit",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "node scripts/pack-icons.js && electron-vite build",
     "preview": "electron-vite preview",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json",

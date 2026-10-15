@@ -305,7 +305,7 @@ app.whenReady().then(() => {
       copyright: 'Copyright © 2026 Raul E. Blanco (rauleblanco)',
       website: 'https://rauleblanco.com/mdmmd-edit',
       credits:
-        'A modern desktop Markdown & Mermaid editor.\nApplication Website: https://rauleblanco.com/mdmmd-edit\nGitHub: https://github.com/rauleblanco/mdmmd-edit',
+        'A modern desktop Markdown & Mermaid editor.\nVibe coded with Gemini 3.8 Flash Medium (Google DeepMind Advanced Agentic Coding).\nApplication Website: https://rauleblanco.com/mdmmd-edit\nGitHub: https://github.com/rauleblanco/mdmmd-edit',
       iconPath: appIcon,
     })
   } catch {
