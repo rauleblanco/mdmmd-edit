@@ -1,15 +1,28 @@
 import { app, BrowserWindow, shell, ipcMain, dialog, nativeTheme } from 'electron'
 import { join } from 'path'
 import { readFile, readdir, stat } from 'fs/promises'
+import { existsSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
 
 let mainWindow: BrowserWindow | null = null
 
+function getAppIconPath(): string {
+  const devPath = join(__dirname, '../../build/icon.png')
+  const resPath = join(process.resourcesPath, 'build/icon.png')
+  const appPath = join(app.getAppPath(), 'build/icon.png')
+  if (existsSync(devPath)) return devPath
+  if (existsSync(resPath)) return resPath
+  if (existsSync(appPath)) return appPath
+  return devPath
+}
+
 function createWindow(): void {
   const isMac = process.platform === 'darwin'
+  const appIcon = getAppIconPath()
 
   mainWindow = new BrowserWindow({
     title: 'md/mmd Edit',
+    icon: appIcon,
     width: 1280,
     height: 800,
     minWidth: 720,
@@ -272,6 +285,33 @@ ipcMain.handle('platform:get', () => process.platform)
 // --- App Lifecycle ---
 
 app.whenReady().then(() => {
+  const appIcon = getAppIconPath()
+
+  // On macOS, set dock icon explicitly
+  if (process.platform === 'darwin' && app.dock) {
+    try {
+      app.dock.setIcon(appIcon)
+    } catch {
+      // ignore in dev / environments where dock is unavailable
+    }
+  }
+
+  // Configure native About panel options (used by macOS application menu)
+  try {
+    app.setAboutPanelOptions({
+      applicationName: 'md/mmd Edit',
+      applicationVersion: '1.0.0',
+      version: '1.0.0',
+      copyright: 'Copyright © 2026 Raul E. Blanco (rauleblanco)',
+      website: 'https://rauleblanco.com/mdmmd-edit',
+      credits:
+        'A modern desktop Markdown & Mermaid editor.\nApplication Website: https://rauleblanco.com/mdmmd-edit\nGitHub: https://github.com/rauleblanco/mdmmd-edit',
+      iconPath: appIcon,
+    })
+  } catch {
+    // ignore
+  }
+
   createWindow()
 
   app.on('activate', () => {

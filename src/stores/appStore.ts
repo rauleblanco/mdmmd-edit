@@ -41,6 +41,9 @@ interface AppState {
   // Settings modal
   settingsOpen: boolean
   setSettingsOpen: (open: boolean) => void
+  settingsTab: 'general' | 'editor' | 'shortcuts' | 'about'
+  setSettingsTab: (tab: 'general' | 'editor' | 'shortcuts' | 'about') => void
+  openSettings: (tab?: 'general' | 'editor' | 'shortcuts' | 'about') => void
 
   // Find / Search in document
   findOpen: boolean
@@ -89,6 +92,9 @@ export const useAppStore = create<AppState>((set) => ({
 
   settingsOpen: false,
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  settingsTab: 'general',
+  setSettingsTab: (settingsTab) => set({ settingsTab }),
+  openSettings: (tab) => set((s) => ({ settingsOpen: true, settingsTab: tab ?? s.settingsTab })),
 
   findOpen: false,
   setFindOpen: (findOpen) => set({ findOpen }),

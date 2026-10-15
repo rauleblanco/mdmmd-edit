@@ -3,18 +3,25 @@ import struct
 from PIL import Image, ImageDraw, ImageFilter
 
 def make_master_icon(src_path: str) -> Image.Image:
-    # 1. Load original icon
+    # 1. Load source icon
     src = Image.open(src_path).convert('RGBA')
-
-    # The squircle is centered in the box (91, 88, 421, 418) -> 330x330
-    crop_box = (91, 88, 421, 418)
-    cropped = src.crop(crop_box)
 
     CANVAS_SIZE = 1024
     # Apple HIG standard for macOS 1024x1024 icon: 824x824 squircle, 100px inset
     ICON_SIZE = 824
     INSET = (CANVAS_SIZE - ICON_SIZE) // 2  # 100px
     RADIUS = 185  # Apple standard continuous corner radius for 824px squircle
+
+    # If the image is already a 1024x1024 master icon with transparent corners, return it
+    if src.size == (CANVAS_SIZE, CANVAS_SIZE) and src.getpixel((0, 0))[3] == 0:
+        return src
+
+    # If source is the original 512x512 mock image, squircle is centered at (256, 254)
+    if src.size == (512, 512):
+        crop_box = (91, 89, 421, 419)
+        cropped = src.crop(crop_box)
+    else:
+        cropped = src
 
     # High-quality scale squircle to 824x824
     scaled_squircle = cropped.resize((ICON_SIZE, ICON_SIZE), Image.Resampling.LANCZOS)
@@ -54,22 +61,19 @@ def image_to_png_bytes(im: Image.Image) -> bytes:
     return buf.getvalue()
 
 def build_icns(master_1024: Image.Image) -> bytes:
-    # Apple ICNS chunk specifications
-    # ic10 = 1024x1024 (512@2x)
-    # ic09 = 512x512
-    # ic08 = 256x256
-    # ic07 = 128x128
-    # icp6 = 64x64
-    # icp5 = 32x32
-    # icp4 = 16x16
+    # Apple ICNS chunk specifications with modern Retina (@2x) and standard (@1x) FourCCs
     chunks_def = [
-        (b'ic10', 1024),
-        (b'ic09', 512),
-        (b'ic08', 256),
-        (b'ic07', 128),
-        (b'icp6', 64),
-        (b'icp5', 32),
-        (b'icp4', 16),
+        (b'ic10', 1024),  # 1024x1024 (512x512@2x)
+        (b'ic09', 512),   # 512x512 (512x512@1x)
+        (b'ic14', 512),   # 512x512 (256x256@2x)
+        (b'ic08', 256),   # 256x256 (256x256@1x)
+        (b'ic13', 256),   # 256x256 (128x128@2x)
+        (b'ic07', 128),   # 128x128 (128x128@1x)
+        (b'ic12', 64),    # 64x64 (32x32@2x)
+        (b'icp6', 64),    # 64x64 (64x64@1x)
+        (b'ic11', 32),    # 32x32 (16x16@2x)
+        (b'icp5', 32),    # 32x32 (32x32@1x)
+        (b'icp4', 16),    # 16x16 (16x16@1x)
     ]
 
     chunk_data_list = []
@@ -126,20 +130,31 @@ if __name__ == '__main__':
     import os
     base_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.join(base_dir, '..', 'build')
-    src = os.path.join(build_dir, 'icon.png')
-    print("Generating master 1024x1024 macOS icon...")
+
+    source_icon = os.path.join(build_dir, 'icon-source.png')
+    target_icon = os.path.join(build_dir, 'icon.png')
+    src = source_icon if os.path.exists(source_icon) else target_icon
+
+    print(f"Generating master 1024x1024 macOS icon from {src}...")
     master = make_master_icon(src)
 
     # Save master 1024x1024 PNG with transparent background
-    master.save(src, format='PNG', optimize=True)
+    master.save(target_icon, format='PNG', optimize=True)
     print("Saved build/icon.png (1024x1024, RGBA transparent)")
+
+    # Also save to src/assets/icon.png for frontend UI
+    assets_dir = os.path.join(base_dir, '..', 'src', 'assets')
+    os.makedirs(assets_dir, exist_ok=True)
+    assets_icon = os.path.join(assets_dir, 'icon.png')
+    master.save(assets_icon, format='PNG', optimize=True)
+    print("Saved src/assets/icon.png (1024x1024, RGBA transparent)")
 
     # Build ICNS
     icns_path = os.path.join(build_dir, 'icon.icns')
     icns_bytes = build_icns(master)
     with open(icns_path, 'wb') as f:
         f.write(icns_bytes)
-    print(f"Saved build/icon.icns ({len(icns_bytes)} bytes, full multi-resolution ic10/ic09/ic08/ic07/icp6/icp5/icp4)")
+    print(f"Saved build/icon.icns ({len(icns_bytes)} bytes, full multi-resolution ic10/ic09/ic14/ic08/ic13/ic07/ic12/icp6/ic11/icp5/icp4)")
 
     # Build ICO
     ico_path = os.path.join(build_dir, 'icon.ico')

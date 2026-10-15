@@ -23,6 +23,7 @@ import {
   Minimize2,
   Gauge,
   Edit3,
+  Info,
 } from 'lucide-react'
 import { isRawMermaid, isMermaidFile } from '@/lib/mermaid/renderer'
 
@@ -95,6 +96,7 @@ export default function App(): JSX.Element {
   const toggleFocusMode = useAppStore((s) => s.toggleFocusMode)
   const settingsOpen = useAppStore((s) => s.settingsOpen)
   const setSettingsOpen = useAppStore((s) => s.setSettingsOpen)
+  const openSettings = useAppStore((s) => s.openSettings)
   const findOpen = useAppStore((s) => s.findOpen)
   const setFindOpen = useAppStore((s) => s.setFindOpen)
   const splitRatio = useAppStore((s) => s.splitRatio)
@@ -551,16 +553,28 @@ export default function App(): JSX.Element {
               </div>
 
               {/* Theme toggle & Settings button */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Theme:</span>
-                  <ThemeToggle />
+              <div className="flex flex-col items-center gap-2.5">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Theme:</span>
+                    <ThemeToggle />
+                  </div>
+                  <button
+                    onClick={() => openSettings('general')}
+                    className="text-xs text-primary hover:underline font-medium"
+                  >
+                    Preferences
+                  </button>
                 </div>
+
+                {/* About icon and button under theme and preferences */}
                 <button
-                  onClick={() => setSettingsOpen(true)}
-                  className="text-xs text-primary hover:underline font-medium"
+                  onClick={() => openSettings('about')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/70 bg-card hover:bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-all shadow-2xs group"
+                  title="About md/mmd Edit (Version, Website & Links)"
                 >
-                  Preferences
+                  <Info className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                  <span>About md/mmd Edit</span>
                 </button>
               </div>
             </div>
