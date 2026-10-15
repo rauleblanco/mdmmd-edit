@@ -1,0 +1,226 @@
+{
+  "name": "mdmmd-edit",
+  "version": "1.0.0",
+  "description": "md/mmd Edit - A modern Markdown + Mermaid editor and renderer",
+  "main": "./out/main/main.js",
+  "author": {
+    "name": "Raul E. Blanco (rauleblanco)",
+    "email": "197316745+rauleblanco@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rauleblanco/mdmmd-edit.git"
+  },
+  "homepage": "https://github.com/rauleblanco/mdmmd-edit",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "icons": "node scripts/pack-icons.js",
+    "dist:mac": "electron-vite build && electron-builder --mac --universal",
+    "dist:win": "electron-vite build && electron-builder --win --x64",
+    "dist:linux": "electron-vite build && electron-builder --linux --x64",
+    "dist": "electron-vite build && electron-builder --mac --universal --win --x64"
+  },
+  "dependencies": {
+    "@codemirror/lang-markdown": "^6.3.1",
+    "@codemirror/language-data": "^6.5.1",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.4",
+    "@radix-ui/react-dialog": "^1.1.4",
+    "@radix-ui/react-dropdown-menu": "^2.1.4",
+    "@radix-ui/react-popover": "^1.1.4",
+    "@radix-ui/react-scroll-area": "^1.2.3",
+    "@radix-ui/react-separator": "^1.1.1",
+    "@radix-ui/react-slider": "^1.2.2",
+    "@radix-ui/react-switch": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "@radix-ui/react-tooltip": "^1.1.6",
+    "chokidar": "^4.0.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.0.4",
+    "docx": "^9.3.0",
+    "electron-store": "^10.0.0",
+    "framer-motion": "^12.6.3",
+    "gray-matter": "^4.0.3",
+    "hast-util-to-jsx-runtime": "^2.3.6",
+    "katex": "^0.18.2",
+    "lucide-react": "^0.474.0",
+    "mermaid": "^11.4.1",
+    "modern-screenshot": "^4.4.41",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "rehype-autolink-headings": "^7.1.0",
+    "rehype-katex": "^7.0.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-slug": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-emoji": "^5.0.1",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.1",
+    "shiki": "^1.29.2",
+    "tailwind-merge": "^3.0.1",
+    "unified": "^11.0.5",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@electron-toolkit/utils": "^4.0.0",
+    "@playwright/test": "^1.50.1",
+    "@types/katex": "^0.16.7",
+    "@types/node": "^22.13.4",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@typescript-eslint/eslint-plugin": "^8.24.0",
+    "@typescript-eslint/parser": "^8.24.0",
+    "@vitejs/plugin-react": "^5.1.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "eslint": "^9.20.0",
+    "postcss": "^8.5.1",
+    "prettier": "^3.5.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "katex": "^0.18.2",
+    "postcss-selector-parser": "^7.1.6"
+  },
+  "build": {
+    "appId": "com.rauleblanco.mdmmd-edit",
+    "productName": "mdmmd Edit",
+    "executableName": "mdmmd Edit",
+    "copyright": "Copyright (c) 2026 Raul E. Blanco (rauleblanco)",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "!node_modules/**/*"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal",
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": "-"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "msi": {
+      "oneClick": false,
+      "perMachine": false
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Development",
+      "maintainer": "rauleblanco <197316745+rauleblanco@users.noreply.github.com>",
+      "icon": "build/icon.png",
+      "executableName": "mdmmd-edit"
+    },
+    "deb": {
+      "priority": "optional"
+    },
+    "fileAssociations": [
+      {
+        "ext": "md",
+        "name": "Markdown Document",
+        "role": "Editor",
+        "mimeType": "text/markdown"
+      },
+      {
+        "ext": "mmd",
+        "name": "Mermaid Diagram",
+        "role": "Editor",
+        "mimeType": "text/vnd.mermaid"
+      },
+      {
+        "ext": "markdown",
+        "name": "Markdown Document",
+        "role": "Editor",
+        "mimeType": "text/markdown"
+      },
+      {
+        "ext": "mdx",
+        "name": "MDX Document",
+        "role": "Editor"
+      },
+      {
+        "ext": "mermaid",
+        "name": "Mermaid Diagram",
+        "role": "Editor",
+        "mimeType": "text/vnd.mermaid"
+      }
+    ]
+  }
+}

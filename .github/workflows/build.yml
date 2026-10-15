@@ -1,0 +1,137 @@
+name: Release Unsigned Desktop Builds
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release version tag (e.g. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-desktop:
+    name: Build & Release (${{ matrix.arch }})
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            target: 'mac'
+            arch: 'macOS (Universal - Apple Silicon & Intel)'
+          - platform: 'windows-latest'
+            target: 'win'
+            arch: 'Windows 10/11 (x64)'
+          - platform: 'ubuntu-latest'
+            target: 'linux'
+            arch: 'Linux (x64 AppImage & deb)'
+
+    runs-on: ${{ matrix.platform }}
+
+    env:
+      # Instructs macOS codesign to produce an ad-hoc self-signature during compilation/packaging
+      APPLE_SIGNING_IDENTITY: '-'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js runtime
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24.21.0'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run Unit Tests
+        run: npm run test
+
+      - name: Build Web Application
+        run: npm run build
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_SHA: ${{ github.sha }}
+          VITE_GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          VITE_GITHUB_SHA: ${{ github.sha }}
+          VITE_BUILD_VERSION: "${{ github.ref_type == 'tag' && github.ref_name || format('v1.0.0-build-{0}', github.run_number) }}"
+
+
+      - name: Package macOS (Ad-hoc Universal & Apple Silicon DMG & Tarball)
+        if: matrix.platform == 'macos-latest'
+        run: npx electron-builder --mac --universal --arm64 --publish never
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: '-'
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Package Windows (x64 NSIS Installer)
+        if: matrix.platform == 'windows-latest'
+        run: npx electron-builder --win --x64 --publish never
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Package Linux (x64 AppImage & deb)
+        if: matrix.platform == 'ubuntu-latest'
+        run: npx electron-builder --linux --x64 --publish never
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: mdmmd-edit-${{ matrix.target }}
+          path: release/*.*
+          if-no-files-found: ignore
+
+      - name: Release Desktop Application (Unsigned / Ad-hoc Signed)
+        uses: softprops/action-gh-release@v3
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.release_tag || format('v1.0.0-build-{0}', github.run_number)) }}
+          name: ${{ github.ref_type == 'tag' && format('md/mmd Edit {0}', github.ref_name) || format('md/mmd Edit {0} (Build {1})', inputs.release_tag || 'v1.0.0', github.run_number) }}
+          body: |
+            ## md/mmd Edit — Cross-Platform Markdown & Mermaid Desktop Application
+            Production-quality desktop editor and renderer for Markdown documents (.md) and Mermaid diagrams (.mmd).
+
+            ### Platform Packages:
+            - **macOS (Universal - Apple Silicon & Intel)**: Ad-hoc signed (`APPLE_SIGNING_IDENTITY: "-"`) `.dmg` and `.tar.gz` archive.
+            - **Windows 10/11 (x64)**: Standalone NSIS installer setup (`.exe`) and Windows Installer (`.msi`).
+            - **Linux (x64)**: Standalone `.AppImage` and Debian package (`.deb`).
+
+            ### Key Features:
+            - **Native .md and .mmd Support**: Create, open, edit, and save both Markdown and Mermaid documents.
+            - **Live Split & Preview Rendering**: GFM tables, math (KaTeX), syntax highlighting (Shiki), GitHub alerts.
+            - **Mermaid Diagrams**: Interactive rendering with zoom/pan lightbox, syntax detection, and error cards.
+            - **Document & Element Export**: PDF (selectable text & custom headers), PNG (1x-4x), JPEG, WebP, SVG, DOCX, and offline HTML.
+            - **One-Click Clipboard Actions**: Copy as PNG image or formatted rich HTML.
+          draft: false
+          prerelease: false
+          files: |
+            release/*.dmg
+            release/*.tar.gz
+            release/*.exe
+            release/*.msi
+            release/*.AppImage
+            release/*.deb
+            release/*.zip
