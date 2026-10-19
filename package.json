@@ -51,7 +51,6 @@
     "docx": "^9.3.0",
     "electron-store": "^10.0.0",
     "framer-motion": "^12.6.3",
-    "gray-matter": "^4.0.3",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "katex": "^0.18.2",
     "lucide-react": "^0.474.0",

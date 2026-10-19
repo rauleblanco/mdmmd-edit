@@ -30,12 +30,26 @@ export async function copyElementAsPng(
 }
 
 /**
+ * Safely extract plain text from an HTML string using DOMParser to avoid
+ * incomplete multi-character sanitization vulnerabilities (CWE-116).
+ */
+function htmlToPlainText(html: string): string {
+  if (typeof DOMParser !== 'undefined') {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    return doc.body.textContent || ''
+  }
+  return html
+}
+
+/**
  * Copy rich formatted HTML to clipboard.
  */
 export async function copyAsRichHtml(html: string): Promise<boolean> {
   try {
+    const plainText = htmlToPlainText(html)
     const blob = new Blob([html], { type: 'text/html' })
-    const textBlob = new Blob([html.replace(/<[^>]*>/g, '')], { type: 'text/plain' })
+    const textBlob = new Blob([plainText], { type: 'text/plain' })
     await navigator.clipboard.write([
       new ClipboardItem({
         'text/html': blob,
