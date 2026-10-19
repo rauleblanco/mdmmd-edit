@@ -9,6 +9,7 @@ import {
   TableCell,
   BorderStyle,
   WidthType,
+  AlignmentType,
 } from 'docx'
 
 /**
@@ -140,6 +141,26 @@ export async function generateDocxBlob(markdown: string, title = 'Document'): Pr
   }
 
   const doc = new Document({
+    numbering: {
+      config: [
+        {
+          reference: 'numbered-list',
+          levels: [
+            {
+              level: 0,
+              format: 'decimal',
+              text: '%1.',
+              alignment: AlignmentType.START,
+              style: {
+                paragraph: {
+                  indent: { left: 720, hanging: 360 },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
     sections: [
       {
         properties: {},

@@ -5,6 +5,25 @@ import { existsSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
 
 let mainWindow: BrowserWindow | null = null
+let pendingFilePath: string | null = null
+
+function extractFilePathFromArgv(argv: string[]): string | null {
+  for (const arg of argv) {
+    if (!arg || arg.startsWith('-')) continue
+    if (arg === '.' || arg.endsWith('main.js') || arg.endsWith('electron') || arg.endsWith('electron.exe')) continue
+    const lower = arg.toLowerCase()
+    if (
+      lower.endsWith('.md') ||
+      lower.endsWith('.mmd') ||
+      lower.endsWith('.markdown') ||
+      lower.endsWith('.mermaid') ||
+      lower.endsWith('.mdx')
+    ) {
+      return arg
+    }
+  }
+  return null
+}
 
 function getAppIconPath(): string {
   const devPath = join(__dirname, '../../build/icon.png')
@@ -61,8 +80,9 @@ function createWindow(): void {
           "default-src 'self'; " +
             "script-src 'self' 'unsafe-eval' 'unsafe-inline'; " +
             "style-src 'self' 'unsafe-inline'; " +
-            "img-src 'self' data: file: asset:; " +
+            "img-src 'self' data: file: asset: https://github.com/sponsors/ https://avatars.githubusercontent.com; " +
             "font-src 'self' data: file: asset:; " +
+            "frame-src 'self' https://github.com/sponsors/; " +
             "connect-src 'self'; " +
             "worker-src 'self' blob:;",
         ],
@@ -114,6 +134,20 @@ ipcMain.handle('file:openPath', async (_event, filePath: string) => {
   if (typeof filePath !== 'string') throw new Error('Invalid file path')
   const content = await readFile(filePath, 'utf-8')
   return { path: filePath, content }
+})
+
+// File: Get initial file (CLI argv on Windows/Linux or pending open-file on macOS)
+ipcMain.handle('file:getInitialFile', async () => {
+  const filePath = pendingFilePath || extractFilePathFromArgv(process.argv)
+  pendingFilePath = null
+  if (!filePath) return null
+  try {
+    const content = await readFile(filePath, 'utf-8')
+    return { path: filePath, content }
+  } catch (err) {
+    console.error('Failed to read initial file:', err)
+    return null
+  }
 })
 
 // File: Save
@@ -282,42 +316,80 @@ ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized() ?? false)
 // Platform info
 ipcMain.handle('platform:get', () => process.platform)
 
-// --- App Lifecycle ---
+// --- App Lifecycle & File Associations ---
 
-app.whenReady().then(() => {
-  const appIcon = getAppIconPath()
-
-  // On macOS, set dock icon explicitly
-  if (process.platform === 'darwin' && app.dock) {
+// Handle macOS open-file event (e.g. file double-clicked or dragged to dock)
+app.on('open-file', async (event, filePath) => {
+  event.preventDefault()
+  if (mainWindow && mainWindow.webContents && !mainWindow.webContents.isLoading()) {
     try {
-      app.dock.setIcon(appIcon)
-    } catch {
-      // ignore in dev / environments where dock is unavailable
+      const content = await readFile(filePath, 'utf-8')
+      mainWindow.webContents.send('file:opened', { path: filePath, content })
+    } catch (err) {
+      console.error('Failed to open file via macOS open-file:', err)
     }
+  } else {
+    pendingFilePath = filePath
   }
-
-  // Configure native About panel options (used by macOS application menu)
-  try {
-    app.setAboutPanelOptions({
-      applicationName: 'md/mmd Edit',
-      applicationVersion: '1.0.0',
-      version: '1.0.0',
-      copyright: 'Copyright © 2026 Raul E. Blanco (rauleblanco)',
-      website: 'https://rauleblanco.com/mdmmd-edit',
-      credits:
-        'A modern desktop Markdown & Mermaid editor.\nVibe coded with Gemini 3.8 Flash Medium (Google DeepMind Advanced Agentic Coding).\nApplication Website: https://rauleblanco.com/mdmmd-edit\nGitHub: https://github.com/rauleblanco/mdmmd-edit',
-      iconPath: appIcon,
-    })
-  } catch {
-    // ignore
-  }
-
-  createWindow()
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
 })
+
+// Single instance lock for Windows & Linux
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', async (_event, argv) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+      const filePath = extractFilePathFromArgv(argv)
+      if (filePath) {
+        try {
+          const content = await readFile(filePath, 'utf-8')
+          mainWindow.webContents.send('file:opened', { path: filePath, content })
+        } catch (err) {
+          console.error('Failed to open file from second instance:', err)
+        }
+      }
+    }
+  })
+
+  app.whenReady().then(() => {
+    const appIcon = getAppIconPath()
+
+    // On macOS, set dock icon explicitly
+    if (process.platform === 'darwin' && app.dock) {
+      try {
+        app.dock.setIcon(appIcon)
+      } catch {
+        // ignore in dev / environments where dock is unavailable
+      }
+    }
+
+    // Configure native About panel options (used by macOS application menu)
+    try {
+      app.setAboutPanelOptions({
+        applicationName: 'md/mmd Edit',
+        applicationVersion: '1.0.0',
+        version: '1.0.0',
+        copyright: 'Copyright © 2026 Raul E. Blanco (rauleblanco)',
+        website: 'https://rauleblanco.com/mdmmd-edit',
+        credits:
+          'A modern desktop Markdown & Mermaid editor.\nVibe coded with Gemini 3.8 Flash Medium (Google DeepMind Advanced Agentic Coding).\nApplication Website: https://rauleblanco.com/mdmmd-edit\nGitHub: https://github.com/rauleblanco/mdmmd-edit',
+        iconPath: appIcon,
+      })
+    } catch {
+      // ignore
+    }
+
+    createWindow()
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

@@ -19,6 +19,8 @@ export interface MarkViewAPI {
     save(path: string, content: string): Promise<void>
     saveAs(content: string, defaultName?: string): Promise<string | null>
     readDirectory(dirPath: string): Promise<DirectoryEntry[]>
+    getInitialFile(): Promise<FileResult | null>
+    onFileOpened(callback: (file: FileResult) => void): () => void
   }
   export: {
     showSaveDialog(options: {
@@ -59,6 +61,14 @@ const api: MarkViewAPI = {
     saveAs: (content: string, defaultName?: string) =>
       ipcRenderer.invoke('file:saveAs', content, defaultName),
     readDirectory: (dirPath: string) => ipcRenderer.invoke('file:readDirectory', dirPath),
+    getInitialFile: () => ipcRenderer.invoke('file:getInitialFile'),
+    onFileOpened: (callback: (file: FileResult) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, file: FileResult) => callback(file)
+      ipcRenderer.on('file:opened', listener)
+      return () => {
+        ipcRenderer.removeListener('file:opened', listener)
+      }
+    },
   },
   export: {
     showSaveDialog: (options) => ipcRenderer.invoke('export:showSaveDialog', options),

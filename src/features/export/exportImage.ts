@@ -62,7 +62,8 @@ export async function captureElementToDataUrl(
     targetWidth = Math.max(element.scrollWidth || 0, element.offsetWidth || 0, element.clientWidth || 0)
     targetHeight = Math.max(element.scrollHeight || 0, element.offsetHeight || 0, element.clientHeight || 0)
 
-    // Inspect child elements (e.g. wide Mermaid diagrams or tables) to avoid horizontal clipping
+    let maxContentBottom = targetHeight
+    // Inspect child elements (e.g. wide Mermaid diagrams or tables) to avoid clipping
     element.querySelectorAll('*').forEach((child) => {
       const ch = child as HTMLElement
       if (ch.scrollWidth && ch.scrollWidth > targetWidth) {
@@ -70,6 +71,12 @@ export async function captureElementToDataUrl(
       }
       if (ch.scrollHeight && ch.scrollHeight > targetHeight) {
         targetHeight = ch.scrollHeight
+      }
+      if (typeof ch.offsetTop === 'number' && typeof ch.offsetHeight === 'number') {
+        const bottom = ch.offsetTop + ch.offsetHeight
+        if (bottom > maxContentBottom) {
+          maxContentBottom = bottom
+        }
       }
       if (ch instanceof SVGSVGElement && ch.viewBox?.baseVal) {
         const vb = ch.viewBox.baseVal
@@ -82,8 +89,8 @@ export async function captureElementToDataUrl(
       }
     })
 
+    targetHeight = Math.max(targetHeight, maxContentBottom) + 48
     targetWidth = Math.ceil(targetWidth)
-    targetHeight = Math.ceil(targetHeight)
   }
 
   // Clamp scale safely if total pixel height exceeds browser canvas limit
@@ -148,7 +155,9 @@ export async function captureElementToDataUrl(
 
         // Always remove floating UI elements / toolbars from the screenshot
         clone
-          .querySelectorAll('[data-element-toolbar], .mermak-copy-btn, .mermak-export-btn')
+          .querySelectorAll(
+            '[data-element-toolbar], .no-export, .no-print, .mermak-copy-btn, .mermak-export-btn, .mermak-export-code'
+          )
           .forEach((el) => el.remove())
       }
     },
@@ -168,9 +177,33 @@ export async function captureElementToDataUrl(
 }
 
 /**
+ * Trigger browser file download from Blob directly
+ */
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/**
  * Trigger browser file download from Data URL
  */
 export function downloadDataUrl(dataUrl: string, filename: string): void {
+  if (dataUrl.startsWith('blob:')) {
+    const link = document.createElement('a')
+    link.href = dataUrl
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    return
+  }
+
   const link = document.createElement('a')
   link.download = filename
 

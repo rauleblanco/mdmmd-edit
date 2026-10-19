@@ -1,28 +1,19 @@
 import {
-  FileText,
-  Network,
-  X,
-  Plus,
-  ClipboardPaste,
   Eye,
   Columns2,
   Code2,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
   Palette,
   Download,
   Maximize2,
   Save,
 } from 'lucide-react'
-import { useDocumentStore } from '@/stores/documentStore'
-import { useAppStore, type ViewMode, type DocumentTheme } from '@/stores/appStore'
+import { useAppStore, type DocumentTheme } from '@/stores/appStore'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { cn } from '@/lib/utils'
 
 interface TabBarProps {
-  onOpenPasteDialog: () => void
-  onNewTab: (type?: 'md' | 'mmd') => void
   onSave?: () => void
   onSaveAs?: () => void
   isDirty?: boolean
@@ -30,18 +21,10 @@ interface TabBarProps {
 }
 
 export function TabBar({
-  onOpenPasteDialog,
-  onNewTab,
   onSave,
-  onSaveAs,
   isDirty,
   onOpenExportDialog,
 }: TabBarProps): JSX.Element {
-  const tabs = useDocumentStore((s) => s.tabs)
-  const activeTabId = useDocumentStore((s) => s.activeTabId)
-  const setActiveTab = useDocumentStore((s) => s.setActiveTab)
-  const removeTab = useDocumentStore((s) => s.removeTab)
-
   const viewMode = useAppStore((s) => s.viewMode)
   const setViewMode = useAppStore((s) => s.setViewMode)
   const documentTheme = useAppStore((s) => s.documentTheme)
@@ -53,96 +36,17 @@ export function TabBar({
   const toggleFocusMode = useAppStore((s) => s.toggleFocusMode)
 
   return (
-    <div className="flex items-center justify-between border-b border-border/70 bg-muted/30 px-3 h-10 select-none">
-      {/* Left: Document Tabs + New / Paste buttons */}
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-1 mr-4">
-        {tabs.map((tab) => {
-          const isActive = tab.id === activeTabId
-          const isMmd = /\.(mmd|mermaid)$/i.test(tab.fileName)
-          return (
-            <div
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'group flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all max-w-[200px]',
-                isActive
-                  ? 'bg-background text-foreground shadow-sm border border-border/60'
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-              )}
-            >
-              {isMmd ? (
-                <Network className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
-              ) : (
-                <FileText className="w-3.5 h-3.5 shrink-0 text-primary" />
-              )}
-              <span className="truncate">{tab.fileName}</span>
-              {tab.isDirty && (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (tab.isDirty) {
-                    const confirmClose = window.confirm(
-                      `"${tab.fileName}" has unsaved changes. Do you want to close without saving?`
-                    )
-                    if (!confirmClose) return
-                  }
-                  removeTab(tab.id)
-                }}
-                className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
-                title="Close Tab"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )
-        })}
-
-        {/* New Tab Buttons (.md and .mmd) */}
-        <div className="flex items-center gap-0.5 ml-1">
-          <button
-            onClick={() => onNewTab('md')}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            title="New Markdown Document (.md) — Cmd/Ctrl+N"
-            aria-label="New Markdown Document"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="font-mono text-[11px]">.md</span>
-          </button>
-
-          <button
-            onClick={() => onNewTab('mmd')}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors"
-            title="New Mermaid Diagram (.mmd)"
-            aria-label="New Mermaid Diagram"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="font-mono text-[11px]">.mmd</span>
-          </button>
-        </div>
-
-        {/* Quick Paste Button */}
-        <button
-          onClick={onOpenPasteDialog}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-1"
-          title="Paste Markdown or Mermaid"
-        >
-          <ClipboardPaste className="w-3.5 h-3.5" />
-          <span>Paste</span>
-        </button>
-      </div>
-
-      {/* Right controls: View mode switcher, Document theme, Zoom */}
-      <div className="flex items-center gap-2 shrink-0">
+    <div className="flex items-center justify-between border-b border-border/70 bg-muted/20 px-3 h-9 select-none shrink-0">
+      {/* Left controls: Document theme, Save, Export, Focus, Zoom */}
+      <div className="flex items-center gap-2 min-w-0">
         {/* Document Theme Switcher */}
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Palette className="w-3.5 h-3.5 text-muted-foreground mr-1" />
+        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+          <Palette className="w-3.5 h-3.5 text-muted-foreground mr-0.5 shrink-0" />
           <select
             value={documentTheme}
             onChange={(e) => setDocumentTheme(e.target.value as DocumentTheme)}
-            className="bg-transparent text-xs text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none border-0"
-            title="Document Theme"
+            className="bg-transparent text-xs text-muted-foreground hover:text-foreground cursor-pointer focus:outline-none border-0 py-0.5"
+            title="Document Typography Theme"
           >
             <option value="github">GitHub</option>
             <option value="academic">Academic</option>
@@ -151,38 +55,51 @@ export function TabBar({
           </select>
         </div>
 
-        <div className="w-px h-4 bg-border/60 mx-1" />
+        <div className="w-px h-3.5 bg-border/60 mx-0.5 shrink-0" />
 
-        {/* View Mode Switcher */}
-        <div className="flex items-center rounded-lg bg-muted/60 p-0.5 gap-0.5 border border-border/50">
-          {(
-            [
-              { mode: 'split', icon: Columns2, label: 'Split (WYSIWYG)', shortcut: 'Cmd+2' },
-              { mode: 'editor', icon: Code2, label: 'Editor', shortcut: 'Cmd+3' },
-              { mode: 'preview', icon: Eye, label: 'Preview', shortcut: 'Cmd+1' },
-            ] as const
-          ).map(({ mode, icon: Icon, label, shortcut }) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={cn(
-                'px-2 py-1 rounded-md transition-all text-xs flex items-center gap-1.5 font-medium',
-                viewMode === mode
-                  ? 'bg-background text-foreground font-semibold shadow-xs border border-border/60'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
-              )}
-              title={`${label} (${shortcut})`}
-            >
-              <Icon className={cn('w-3.5 h-3.5', viewMode === mode ? 'text-primary' : 'text-muted-foreground')} />
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          ))}
-        </div>
+        {/* Save Document Button */}
+        {onSave && (
+          <button
+            onClick={onSave}
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all shadow-2xs shrink-0',
+              isDirty
+                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 font-semibold'
+                : 'bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/20'
+            )}
+            title="Save Document to Disk (Cmd/Ctrl+S)"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Save</span>
+            {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+          </button>
+        )}
 
-        <div className="w-px h-4 bg-border/60 mx-1" />
+        {/* Export Document Button */}
+        {onOpenExportDialog && (
+          <button
+            onClick={onOpenExportDialog}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-600/10 text-blue-600 dark:text-blue-400 hover:bg-blue-600/20 transition-colors shrink-0"
+            title="Export Document (Cmd/Ctrl+E)"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export</span>
+          </button>
+        )}
+
+        <div className="w-px h-3.5 bg-border/60 mx-0.5 shrink-0 hidden sm:block" />
+
+        {/* Focus Mode Button */}
+        <button
+          onClick={toggleFocusMode}
+          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 hidden sm:inline-flex"
+          title="Focus / Reading Mode (Cmd+Shift+F)"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+        </button>
 
         {/* Zoom Controls */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 shrink-0 hidden md:flex">
           <button
             onClick={zoomOut}
             className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -205,56 +122,44 @@ export function TabBar({
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
 
-        <div className="w-px h-4 bg-border/60 mx-1" />
-
-        {/* Focus Mode Button */}
-        <button
-          onClick={toggleFocusMode}
-          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          title="Focus / Reading Mode (Cmd+Shift+F)"
-        >
-          <Maximize2 className="w-3.5 h-3.5" />
-        </button>
-
-        {/* Save Document Button */}
-        {onSave && (
-          <>
-            <div className="w-px h-4 bg-border/60 mx-1" />
+      {/* Right controls: View mode switcher and Dark/Light ThemeToggle */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* View Mode Switcher */}
+        <div className="flex items-center rounded-lg bg-muted/60 p-0.5 gap-0.5 border border-border/50">
+          {(
+            [
+              { mode: 'split', icon: Columns2, label: 'Split (WYSIWYG)', shortcut: 'Cmd+2' },
+              { mode: 'editor', icon: Code2, label: 'Editor', shortcut: 'Cmd+3' },
+              { mode: 'preview', icon: Eye, label: 'Preview', shortcut: 'Cmd+1' },
+            ] as const
+          ).map(({ mode, icon: Icon, label, shortcut }) => (
             <button
-              onClick={onSave}
+              key={mode}
+              onClick={() => setViewMode(mode)}
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all shadow-sm',
-                isDirty
-                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 font-semibold'
-                  : 'bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/20'
+                'px-2 py-0.5 rounded-md transition-all text-xs flex items-center gap-1.5 font-medium',
+                viewMode === mode
+                  ? 'bg-background text-foreground font-semibold shadow-2xs border border-border/60'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
               )}
-              title="Save Document to Disk (Cmd/Ctrl+S)"
+              title={`${label} (${shortcut})`}
             >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save</span>
-              {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+              <Icon
+                className={cn(
+                  'w-3.5 h-3.5',
+                  viewMode === mode ? 'text-primary' : 'text-muted-foreground'
+                )}
+              />
+              <span className="hidden sm:inline">{label}</span>
             </button>
-          </>
-        )}
+          ))}
+        </div>
 
-        {/* Export Document Button */}
-        {onOpenExportDialog && (
-          <>
-            <div className="w-px h-4 bg-border/60 mx-1" />
-            <button
-              onClick={onOpenExportDialog}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-600/10 text-blue-600 dark:text-blue-400 hover:bg-blue-600/20 transition-colors"
-              title="Export Document (Cmd/Ctrl+E)"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export</span>
-            </button>
-          </>
-        )}
+        <div className="w-px h-3.5 bg-border/60 mx-0.5 shrink-0" />
 
-        {/* Light / Dark Mode Theme Switcher (Same toolbar next to Export) */}
-        <div className="w-px h-4 bg-border/60 mx-1" />
+        {/* Light / Dark Mode Theme Switcher */}
         <ThemeToggle />
       </div>
     </div>

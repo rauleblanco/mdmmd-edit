@@ -50,3 +50,34 @@ describe('Export Image Utilities', () => {
     expect(result.scaledHeight).toBe(3000)
   })
 })
+
+describe('Export HTML & DOCX Utilities', () => {
+  it('strips interactive overlay toolbars from HTML for clean export', async () => {
+    const { stripExportToolbars } = await import('../../src/features/export/exportHtml')
+    const htmlWithToolbars = `
+      <div class="group relative">
+        <div data-element-toolbar="true" class="no-export no-print">
+          <span>Mermaid</span>
+          <button class="mermak-copy-btn">Copy</button>
+          <button class="mermak-export-btn">Export</button>
+        </div>
+        <svg><text>Diagram</text></svg>
+      </div>
+      <p>Start typing markdown or mermaid here...</p>
+    `
+    const cleaned = stripExportToolbars(htmlWithToolbars)
+    expect(cleaned).not.toContain('Mermaid')
+    expect(cleaned).not.toContain('mermak-copy-btn')
+    expect(cleaned).not.toContain('mermak-export-btn')
+    expect(cleaned).toContain('Diagram')
+    expect(cleaned).toContain('Start typing markdown or mermaid here...')
+  })
+
+  it('generates a valid DOCX blob from markdown including mermaid blocks and paragraphs', async () => {
+    const { generateDocxBlob } = await import('../../src/features/export/exportDocx')
+    const markdown = '```mermaid\nerDiagram\n  USERS ||--o{ DOCUMENTS : owns\n```\n\n# Untitled\n\nStart typing markdown or mermaid here...'
+    const blob = await generateDocxBlob(markdown, 'Untitled')
+    expect(blob).toBeDefined()
+    expect(blob.size).toBeGreaterThan(1000)
+  })
+})

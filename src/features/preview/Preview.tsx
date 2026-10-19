@@ -109,7 +109,7 @@ export function Preview({
       renderMermaidDiagram(mermaidCode, isDark).then((res) => {
         if (res.svg) {
           wrapper.innerHTML = `
-            <div class="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-lg border border-border/60 bg-background/90 backdrop-blur-md p-1 shadow-md opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <div data-element-toolbar="true" class="no-export no-print absolute top-2 right-2 z-10 flex items-center gap-1 rounded-lg border border-border/60 bg-background/90 backdrop-blur-md p-1 shadow-md opacity-0 transition-opacity duration-200 group-hover:opacity-100">
               <span class="px-1.5 text-[11px] font-mono text-muted-foreground uppercase tracking-wider">Mermaid</span>
               <button class="mermak-copy-btn p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Copy SVG">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -157,7 +157,8 @@ export function Preview({
       pre.setAttribute('data-toolbar', 'true')
       pre.classList.add('group', 'relative')
       const btnGroup = document.createElement('div')
-      btnGroup.className = 'absolute top-2 right-2 z-10 flex items-center gap-1 rounded-lg border border-border/60 bg-background/90 backdrop-blur-md p-1 shadow-md opacity-0 transition-opacity duration-200 group-hover:opacity-100'
+      btnGroup.setAttribute('data-element-toolbar', 'true')
+      btnGroup.className = 'no-export no-print absolute top-2 right-2 z-10 flex items-center gap-1 rounded-lg border border-border/60 bg-background/90 backdrop-blur-md p-1 shadow-md opacity-0 transition-opacity duration-200 group-hover:opacity-100'
       btnGroup.innerHTML = `
         <button class="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Copy code">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -192,7 +193,8 @@ export function Preview({
       wrapper.appendChild(tbl)
 
       const tblToolbar = document.createElement('div')
-      tblToolbar.className = 'absolute top-2 right-2 z-10 flex items-center gap-1 rounded-lg border border-border/60 bg-background/90 backdrop-blur-md p-1 shadow-md opacity-0 transition-opacity duration-200 group-hover:opacity-100'
+      tblToolbar.setAttribute('data-element-toolbar', 'true')
+      tblToolbar.className = 'no-export no-print absolute top-2 right-2 z-10 flex items-center gap-1 rounded-lg border border-border/60 bg-background/90 backdrop-blur-md p-1 shadow-md opacity-0 transition-opacity duration-200 group-hover:opacity-100'
       tblToolbar.innerHTML = `
         <button class="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Export Table as Image">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>

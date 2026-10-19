@@ -77,6 +77,7 @@ export function buildStandaloneHtml(
       border-left: 4px solid var(--primary);
       background: var(--muted);
       border-radius: 0 8px 8px 0;
+    }
     .gh-alert, .markdown-alert {
       padding: 12px 16px;
       margin: 16px 0;
@@ -98,6 +99,9 @@ export function buildStandaloneHtml(
     img, svg {
       max-width: 100%;
       height: auto;
+    }
+    [data-element-toolbar], .mermak-copy-btn, .mermak-export-btn, .mermak-export-code, .no-export, .no-print {
+      display: none !important;
     }
     @page {
       margin: 15mm;
@@ -144,4 +148,22 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;')
+}
+
+/**
+ * Strip interactive overlay toolbars and buttons before exporting to HTML/PDF.
+ */
+export function stripExportToolbars(html: string): string {
+  if (!html) return ''
+  if (typeof DOMParser !== 'undefined') {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    doc
+      .querySelectorAll('[data-element-toolbar], .no-export, .no-print, .mermak-copy-btn, .mermak-export-btn, .mermak-export-code')
+      .forEach((el) => el.remove())
+    return doc.body.innerHTML
+  }
+  return html
+    .replace(/<div[^>]*data-element-toolbar[^>]*>[\s\S]*?<\/div>/gi, '')
+    .replace(/<button[^>]*class="[^"]*mermak-(?:copy|export)[^"]*"[^>]*>[\s\S]*?<\/button>/gi, '')
 }

@@ -15,10 +15,11 @@ import {
 import {
   captureElementToDataUrl,
   downloadDataUrl,
+  downloadBlob,
   dataUrlToUint8Array,
   checkCanvasLimit,
 } from './exportImage'
-import { buildStandaloneHtml } from './exportHtml'
+import { buildStandaloneHtml, stripExportToolbars } from './exportHtml'
 import { generateDocxBlob } from './exportDocx'
 import { copyElementAsPng, copyAsRichHtml, copyAsPlainMarkdown } from './clipboard'
 import { useAppStore } from '@/stores/appStore'
@@ -113,30 +114,66 @@ export function ExportDialog({
           downloadDataUrl(dataUrl, defaultFilename)
         }
       } else if (format === 'html') {
-        const fullHtml = buildStandaloneHtml(renderedHtml || targetElement?.innerHTML || '', cleanTitle, isDark)
-        const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' })
-        const url = URL.createObjectURL(blob)
-        downloadDataUrl(url, `${cleanTitle}.html`)
-        URL.revokeObjectURL(url)
+        const rawHtml = renderedHtml || targetElement?.innerHTML || ''
+        const cleanHtml = stripExportToolbars(rawHtml)
+        const fullHtml = buildStandaloneHtml(cleanHtml, cleanTitle, isDark)
+        const exportAPI = window.mdmmd?.export || window.mermak?.export || window.markview?.export
+        if (exportAPI) {
+          const filePath = await exportAPI.showSaveDialog({
+            defaultPath: `${cleanTitle}.html`,
+            filters: [{ name: 'HTML Document (*.html)', extensions: ['html', 'htm'] }],
+          })
+          if (filePath) {
+            const bytes = new TextEncoder().encode(fullHtml)
+            await exportAPI.saveFile(filePath, bytes)
+            setToastMsg(`Saved to ${filePath}`)
+          }
+        } else {
+          const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' })
+          downloadBlob(blob, `${cleanTitle}.html`)
+        }
       } else if (format === 'docx') {
         const docxBlob = await generateDocxBlob(markdownContent, cleanTitle)
-        const url = URL.createObjectURL(docxBlob)
-        downloadDataUrl(url, `${cleanTitle}.docx`)
-        URL.revokeObjectURL(url)
+        const exportAPI = window.mdmmd?.export || window.mermak?.export || window.markview?.export
+        if (exportAPI) {
+          const filePath = await exportAPI.showSaveDialog({
+            defaultPath: `${cleanTitle}.docx`,
+            filters: [{ name: 'Word Document (*.docx)', extensions: ['docx'] }],
+          })
+          if (filePath) {
+            const arrayBuf = await docxBlob.arrayBuffer()
+            await exportAPI.saveFile(filePath, new Uint8Array(arrayBuf))
+            setToastMsg(`Saved to ${filePath}`)
+          }
+        } else {
+          downloadBlob(docxBlob, `${cleanTitle}.docx`)
+        }
       } else if (format === 'markdown') {
-        const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' })
-        const url = URL.createObjectURL(blob)
-        downloadDataUrl(url, `${cleanTitle}.md`)
-        URL.revokeObjectURL(url)
+        const exportAPI = window.mdmmd?.export || window.mermak?.export || window.markview?.export
+        if (exportAPI) {
+          const filePath = await exportAPI.showSaveDialog({
+            defaultPath: `${cleanTitle}.md`,
+            filters: [{ name: 'Markdown Document (*.md)', extensions: ['md', 'markdown'] }],
+          })
+          if (filePath) {
+            const bytes = new TextEncoder().encode(markdownContent)
+            await exportAPI.saveFile(filePath, bytes)
+            setToastMsg(`Saved to ${filePath}`)
+          }
+        } else {
+          const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' })
+          downloadBlob(blob, `${cleanTitle}.md`)
+        }
       } else if (format === 'pdf') {
         const exportAPI = window.mdmmd?.export || window.mermak?.export || window.markview?.export
         if (exportAPI?.printToPDF) {
-          const contentToRender = targetElement?.innerHTML || renderedHtml || ''
-          const fullHtml = buildStandaloneHtml(contentToRender, cleanTitle, isDark)
+          const rawHtml = targetElement?.innerHTML || renderedHtml || ''
+          const cleanHtml = stripExportToolbars(rawHtml)
+          const fullHtml = buildStandaloneHtml(cleanHtml, cleanTitle, isDark)
 
           const filePath = await exportAPI.showSaveDialog({
             defaultPath: `${cleanTitle}.pdf`,
-            filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
+            filters: [{ name: 'PDF Document (*.pdf)', extensions: ['pdf'] }],
           })
 
           if (filePath) {

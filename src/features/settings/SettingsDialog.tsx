@@ -372,6 +372,18 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps): JSX.El
                 </a>
               </div>
 
+              {/* GitHub Sponsor Button */}
+              <div className="flex flex-col items-center justify-center pt-2 pb-1 gap-1.5">
+                <span className="text-[11px] font-medium text-muted-foreground">Support the developer</span>
+                <iframe
+                  src="https://github.com/sponsors/rauleblanco/button"
+                  title="Sponsor rauleblanco"
+                  height="32"
+                  width="114"
+                  style={{ border: 0, borderRadius: 6 }}
+                />
+              </div>
+
               {/* Copyright Notice */}
               <div className="pt-3 border-t border-border/50 space-y-2.5">
                 <p className="text-[11px] font-medium text-muted-foreground">

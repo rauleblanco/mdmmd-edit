@@ -81,6 +81,7 @@ export default function App(): JSX.Element {
 
   const tabs = useDocumentStore((s) => s.tabs)
   const activeTabId = useDocumentStore((s) => s.activeTabId)
+  const setActiveTab = useDocumentStore((s) => s.setActiveTab)
   const addTab = useDocumentStore((s) => s.addTab)
   const updateTabContent = useDocumentStore((s) => s.updateTabContent)
   const updateTabFile = useDocumentStore((s) => s.updateTabFile)
@@ -111,6 +112,43 @@ export default function App(): JSX.Element {
       setLiveContent(activeTab.content)
     }
   }, [activeTab?.id])
+
+  // Check for initial file and listen for files opened via OS association (Windows/Mac/Linux)
+  useEffect(() => {
+    const fileAPI = window.mdmmd?.file || window.mermak?.file || window.markview?.file
+    if (!fileAPI) return
+
+    const openDocument = (res: { path: string; content: string }) => {
+      if (!res || !res.path) return
+      const fileName = res.path.split(/[\\/]/).pop() || 'document.md'
+      const existing = tabs.find((t) => t.filePath === res.path)
+      if (existing) {
+        setActiveTab(existing.id)
+      } else {
+        addTab({
+          id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          filePath: res.path,
+          fileName,
+          content: res.content,
+          isDirty: false,
+          scrollPosition: 0,
+        })
+      }
+    }
+
+    if (fileAPI.getInitialFile) {
+      fileAPI.getInitialFile().then((res) => {
+        if (res) openDocument(res)
+      })
+    }
+
+    if (fileAPI.onFileOpened) {
+      const unsubscribe = fileAPI.onFileOpened(openDocument)
+      return () => {
+        if (typeof unsubscribe === 'function') unsubscribe()
+      }
+    }
+  }, [addTab, setActiveTab, tabs])
 
   const handleEditorChange = (newVal: string) => {
     setLiveContent(newVal)
@@ -419,14 +457,17 @@ export default function App(): JSX.Element {
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
-      {/* Title bar (hidden in Focus mode) */}
-      {!focusMode && <Titlebar />}
-
-      {/* Tabs and Toolbar (when not in Focus mode and at least one doc open) */}
-      {!focusMode && tabs.length > 0 && (
-        <TabBar
+      {/* Title bar with tabs, +.md, +.mmd, and Paste buttons (hidden in Focus mode) */}
+      {!focusMode && (
+        <Titlebar
           onOpenPasteDialog={() => setPasteDialogOpen(true)}
           onNewTab={handleNewTab}
+        />
+      )}
+
+      {/* Document Toolbar (when not in Focus mode and at least one doc open) */}
+      {!focusMode && tabs.length > 0 && (
+        <TabBar
           onSave={handleSaveFile}
           onSaveAs={handleSaveFileAs}
           isDirty={activeTab?.isDirty}
