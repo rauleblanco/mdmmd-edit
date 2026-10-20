@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain, dialog, nativeTheme } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, dialog, nativeTheme, Menu } from 'electron'
 import { join } from 'path'
 import { readFile, readdir, stat } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -6,6 +6,21 @@ import { is } from '@electron-toolkit/utils'
 
 let mainWindow: BrowserWindow | null = null
 let pendingFilePath: string | null = null
+
+declare const __APP_VERSION__: string
+declare const __BUILD_VERSION__: string
+declare const __GITHUB_RUN_NUMBER__: string
+declare const __GITHUB_SHA__: string
+
+const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'
+const githubRunNumber = typeof __GITHUB_RUN_NUMBER__ !== 'undefined' ? __GITHUB_RUN_NUMBER__ : ''
+const githubSha = typeof __GITHUB_SHA__ !== 'undefined' ? __GITHUB_SHA__ : ''
+const buildVersion = typeof __BUILD_VERSION__ !== 'undefined' ? __BUILD_VERSION__ : `v${appVersion}`
+const fullVersionDisplay = githubRunNumber
+  ? `GitHub Actions Build #${githubRunNumber}${githubSha ? ` (${githubSha})` : ''}`
+  : buildVersion.includes('Build')
+    ? buildVersion
+    : `GitHub Actions Build: ${buildVersion}`
 
 function extractFilePathFromArgv(argv: string[]): string | null {
   for (const arg of argv) {
@@ -371,16 +386,90 @@ if (!gotTheLock) {
     try {
       app.setAboutPanelOptions({
         applicationName: 'md/mmd Edit',
-        applicationVersion: '1.0.0',
-        version: '1.0.0',
+        applicationVersion: `v${appVersion}`,
+        version: fullVersionDisplay,
         copyright: 'Copyright © 2026 Raul E. Blanco (rauleblanco)',
         website: 'https://rauleblanco.com/mdmmd-edit',
         credits:
-          'A modern desktop Markdown & Mermaid editor.\nVibe coded with Gemini 3.8 Flash Medium (Google DeepMind Advanced Agentic Coding).\nApplication Website: https://rauleblanco.com/mdmmd-edit\nGitHub: https://github.com/rauleblanco/mdmmd-edit',
+          'A modern desktop application that opens, edits, renders, and exports Markdown documents (.md) and Mermaid diagrams (.mmd) with print-quality typography.',
         iconPath: appIcon,
       })
     } catch {
       // ignore
+    }
+
+    // Configure macOS application menu
+    if (process.platform === 'darwin') {
+      const template: Electron.MenuItemConstructorOptions[] = [
+        {
+          label: 'md/mmd Edit',
+          submenu: [
+            {
+              label: 'About md/mmd Edit',
+              click: () => {
+                app.showAboutPanel()
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                  mainWindow.webContents.send('menu:open-settings', 'about')
+                }
+              },
+            },
+            { type: 'separator' },
+            {
+              label: 'Preferences...',
+              accelerator: 'CmdOrCtrl+,',
+              click: () => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                  mainWindow.webContents.send('menu:open-settings', 'general')
+                }
+              },
+            },
+            { type: 'separator' },
+            { role: 'services' },
+            { type: 'separator' },
+            { role: 'hide' },
+            { role: 'hideOthers' },
+            { role: 'unhide' },
+            { type: 'separator' },
+            { role: 'quit' },
+          ],
+        },
+        {
+          role: 'fileMenu',
+        },
+        {
+          role: 'editMenu',
+        },
+        {
+          role: 'viewMenu',
+        },
+        {
+          role: 'windowMenu',
+        },
+        {
+          role: 'help',
+          submenu: [
+            {
+              label: 'md/mmd Edit Documentation & Website',
+              click: () => {
+                shell.openExternal('https://rauleblanco.com/mdmmd-edit')
+              },
+            },
+            {
+              label: 'GitHub Repository',
+              click: () => {
+                shell.openExternal('https://github.com/rauleblanco/mdmmd-edit')
+              },
+            },
+            {
+              label: 'Support the Developer (GitHub Sponsors)',
+              click: () => {
+                shell.openExternal('https://github.com/sponsors/rauleblanco')
+              },
+            },
+          ],
+        },
+      ]
+      Menu.setApplicationMenu(Menu.buildFromTemplate(template))
     }
 
     createWindow()

@@ -50,6 +50,9 @@ export interface MarkViewAPI {
     get(): Promise<'light' | 'dark'>
     set(theme: 'light' | 'dark' | 'system'): void
   }
+  menu?: {
+    onOpenSettings(callback: (tab?: 'general' | 'editor' | 'shortcuts' | 'about') => void): () => void
+  }
   platform: NodeJS.Platform
 }
 
@@ -89,6 +92,18 @@ const api: MarkViewAPI = {
   theme: {
     get: () => ipcRenderer.invoke('theme:get'),
     set: (theme: 'light' | 'dark' | 'system') => ipcRenderer.send('theme:set', theme),
+  },
+  menu: {
+    onOpenSettings: (callback: (tab?: 'general' | 'editor' | 'shortcuts' | 'about') => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        tab?: 'general' | 'editor' | 'shortcuts' | 'about'
+      ) => callback(tab)
+      ipcRenderer.on('menu:open-settings', listener)
+      return () => {
+        ipcRenderer.removeListener('menu:open-settings', listener)
+      }
+    },
   },
   platform: process.platform,
 }

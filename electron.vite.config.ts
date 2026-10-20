@@ -17,6 +17,16 @@ const buildVersion =
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+      __BUILD_VERSION__: JSON.stringify(buildVersion),
+      __GITHUB_RUN_NUMBER__: JSON.stringify(runNumber),
+      __GITHUB_SHA__: JSON.stringify(gitSha),
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
+      'import.meta.env.VITE_BUILD_VERSION': JSON.stringify(buildVersion),
+      'import.meta.env.VITE_GITHUB_RUN_NUMBER': JSON.stringify(runNumber),
+      'import.meta.env.VITE_GITHUB_SHA': JSON.stringify(gitSha),
+    },
     build: {
       lib: {
         entry: resolve('electron/main.ts')

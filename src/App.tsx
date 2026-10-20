@@ -150,6 +150,18 @@ export default function App(): JSX.Element {
     }
   }, [addTab, setActiveTab, tabs])
 
+  // Listen for menu events (e.g. macOS "About md/mmd Edit" or "Preferences...")
+  useEffect(() => {
+    const menuAPI = window.mdmmd?.menu || window.mermak?.menu || window.markview?.menu
+    if (!menuAPI?.onOpenSettings) return
+    const unsubscribe = menuAPI.onOpenSettings((tab) => {
+      openSettings(tab)
+    })
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe()
+    }
+  }, [openSettings])
+
   const handleEditorChange = (newVal: string) => {
     setLiveContent(newVal)
     if (debounceTimerRef.current) {

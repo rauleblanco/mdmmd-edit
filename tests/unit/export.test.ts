@@ -80,4 +80,20 @@ describe('Export HTML & DOCX Utilities', () => {
     expect(blob).toBeDefined()
     expect(blob.size).toBeGreaterThan(1000)
   })
+
+  it('generates a valid DOCX blob from standalone pure mermaid diagrams', async () => {
+    const { generateDocxBlob } = await import('../../src/features/export/exportDocx')
+    const pureMermaid = 'flowchart LR\n  A[Start] --> B[Processing]\n  B --> C[Done]'
+    const blob = await generateDocxBlob(pureMermaid, 'My Flowchart')
+    expect(blob).toBeDefined()
+    expect(blob.size).toBeGreaterThan(500)
+  })
+
+  it('generates a valid DOCX blob with markdown tables and inline formatting', async () => {
+    const { generateDocxBlob } = await import('../../src/features/export/exportDocx')
+    const tableMd = '# Analysis\n\n| Feature | Status | Notes |\n| --- | --- | --- |\n| **Export** | *Ready* | Supports `docx` |\n\n- **Bold item** and `code`'
+    const blob = await generateDocxBlob(tableMd, 'Analysis')
+    expect(blob).toBeDefined()
+    expect(blob.size).toBeGreaterThan(800)
+  })
 })

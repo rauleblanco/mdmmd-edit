@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Sparkles,
   GitBranch,
+  Heart,
 } from 'lucide-react'
 import { useAppStore, type Theme, type DocumentTheme } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
@@ -370,18 +371,25 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps): JSX.El
                   </div>
                   <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-70 shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </a>
-              </div>
-
-              {/* GitHub Sponsor Button */}
-              <div className="flex flex-col items-center justify-center pt-2 pb-1 gap-1.5">
-                <span className="text-[11px] font-medium text-muted-foreground">Support the developer</span>
-                <iframe
-                  src="https://github.com/sponsors/rauleblanco/button"
-                  title="Sponsor rauleblanco"
-                  height="32"
-                  width="114"
-                  style={{ border: 0, borderRadius: 6 }}
-                />
+                <a
+                  href="https://github.com/sponsors/rauleblanco"
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleOpenUrl('https://github.com/sponsors/rauleblanco')
+                  }}
+                  className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border border-pink-500/20 bg-pink-500/5 hover:bg-pink-500/10 text-xs font-medium text-foreground hover:text-pink-600 dark:hover:text-pink-400 transition-all shadow-xs group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Heart className="w-4 h-4 text-pink-500 fill-pink-500/20 group-hover:scale-110 transition-transform shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-muted-foreground font-semibold">Support the developer</div>
+                      <div className="truncate font-mono text-[11px] text-pink-600 dark:text-pink-400">https://github.com/sponsors/rauleblanco</div>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-70 shrink-0 group-hover:text-pink-600 dark:group-hover:text-pink-400 group-hover:translate-x-0.5 transition-all" />
+                </a>
               </div>
 
               {/* Copyright Notice */}
