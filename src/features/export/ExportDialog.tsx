@@ -55,8 +55,7 @@ export function ExportDialog({
   const [copiedAction, setCopiedAction] = useState<string | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
-  const resolvedTheme = useAppStore((s) => s.resolvedTheme)
-  const isDark = resolvedTheme === 'dark'
+
 
   const isElementTarget = Boolean(
     targetElement &&
@@ -85,7 +84,7 @@ export function ExportDialog({
 
         const bgColor = transparentBg && format === 'png'
           ? null
-          : isDark ? '#090d16' : '#ffffff'
+          : '#ffffff'
 
         const dataUrl = await captureElementToDataUrl(targetElement, {
           format,
@@ -116,7 +115,7 @@ export function ExportDialog({
       } else if (format === 'html') {
         const rawHtml = renderedHtml || targetElement?.innerHTML || ''
         const cleanHtml = stripExportToolbars(rawHtml)
-        const fullHtml = buildStandaloneHtml(cleanHtml, cleanTitle, isDark)
+        const fullHtml = buildStandaloneHtml(cleanHtml, cleanTitle, false)
         const exportAPI = window.mdmmd?.export || window.mermak?.export || window.markview?.export
         if (exportAPI) {
           const filePath = await exportAPI.showSaveDialog({
@@ -169,7 +168,7 @@ export function ExportDialog({
         if (exportAPI?.printToPDF) {
           const rawHtml = targetElement?.innerHTML || renderedHtml || ''
           const cleanHtml = stripExportToolbars(rawHtml)
-          const fullHtml = buildStandaloneHtml(cleanHtml, cleanTitle, isDark)
+          const fullHtml = buildStandaloneHtml(cleanHtml, cleanTitle, false)
 
           const filePath = await exportAPI.showSaveDialog({
             defaultPath: `${cleanTitle}.pdf`,
@@ -203,7 +202,7 @@ export function ExportDialog({
     if (!targetElement) return
     const success = await copyElementAsPng(targetElement, scale, {
       scope,
-      backgroundColor: transparentBg && format === 'png' ? null : isDark ? '#090d16' : '#ffffff',
+      backgroundColor: transparentBg && format === 'png' ? null : '#ffffff',
     })
     if (success) {
       setCopiedAction('image')

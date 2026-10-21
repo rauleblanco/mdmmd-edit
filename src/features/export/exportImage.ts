@@ -38,18 +38,28 @@ export async function captureElementToDataUrl(
 ): Promise<string> {
   const scale = options.scale || 2
   const quality = options.quality ?? 0.95
-  const backgroundColor = options.backgroundColor ?? undefined
+  const backgroundColor = options.backgroundColor !== undefined ? options.backgroundColor : '#ffffff'
   const isViewport = options.scope === 'viewport'
 
-  // If format is SVG and target is or contains an SVG diagram, serialize clean vector directly
+  // If format is SVG and target is or contains an SVG diagram, serialize clean vector directly with light styling
   if (options.format === 'svg') {
+    const sanitizeSvgToLight = (str: string) => {
+      return str
+        .replace(/#090d16/g, '#ffffff')
+        .replace(/#0f172a/g, '#ffffff')
+        .replace(/#1e293b/g, '#f8fafc')
+        .replace(/#f1f5f9/g, '#0f172a')
+        .replace(/#f8fafc/g, '#0f172a')
+        .replace(/fill:\s*(#090d16|#000000)/gi, 'fill: #ffffff')
+    }
+
     if (element.tagName.toLowerCase() === 'svg') {
-      const svgStr = new XMLSerializer().serializeToString(element)
+      const svgStr = sanitizeSvgToLight(new XMLSerializer().serializeToString(element))
       return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgStr)}`
     }
     const directSvg = element.querySelector('svg')
     if (directSvg && (element.classList.contains('group') || element.querySelectorAll('svg').length === 1)) {
-      const svgStr = new XMLSerializer().serializeToString(directSvg)
+      const svgStr = sanitizeSvgToLight(new XMLSerializer().serializeToString(directSvg))
       return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgStr)}`
     }
   }
@@ -120,6 +130,63 @@ export async function captureElementToDataUrl(
     },
     onCloneNode: (clone: Node) => {
       if (clone instanceof HTMLElement) {
+        // Enforce clean white background and light-theme typography/tokens across all exports
+        clone.classList.remove('dark')
+        clone.setAttribute('data-theme', 'light')
+        clone.style.setProperty('--background', '0 0% 100%')
+        clone.style.setProperty('--foreground', '222.2 84% 4.9%')
+        clone.style.setProperty('--card', '0 0% 100%')
+        clone.style.setProperty('--card-foreground', '222.2 84% 4.9%')
+        clone.style.setProperty('--popover', '0 0% 100%')
+        clone.style.setProperty('--popover-foreground', '222.2 84% 4.9%')
+        clone.style.setProperty('--muted', '210 40% 96.1%')
+        clone.style.setProperty('--muted-foreground', '215.4 16.3% 46.9%')
+        clone.style.setProperty('--border', '214.3 31.8% 91.4%')
+        clone.style.setProperty('color-scheme', 'light')
+        clone.style.backgroundColor = backgroundColor || '#ffffff'
+        clone.style.color = '#0f172a'
+
+        // Remove dark class from all nested children
+        clone.querySelectorAll('.dark').forEach((el) => {
+          el.classList.remove('dark')
+        })
+
+        // Ensure text elements that had light text in dark mode use dark text
+        clone.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, span, td, th, blockquote').forEach((el) => {
+          const htmlEl = el as HTMLElement
+          const c = htmlEl.style?.color
+          if (c === 'rgb(248, 250, 252)' || c === 'rgb(241, 245, 249)' || c === '#f8fafc' || c === '#f1f5f9') {
+            htmlEl.style.color = '#0f172a'
+          }
+        })
+
+        // Ensure code blocks use light background and dark text
+        clone.querySelectorAll('pre').forEach((pre) => {
+          pre.style.backgroundColor = '#f8fafc'
+          pre.style.borderColor = '#e2e8f0'
+          pre.style.color = '#0f172a'
+        })
+
+        // Ensure SVG elements (such as Mermaid diagrams) use light fills and borders
+        clone.querySelectorAll('svg rect').forEach((rect) => {
+          const r = rect as SVGRectElement
+          const fill = r.getAttribute('fill')
+          if (fill === '#090d16' || fill === '#000000' || fill === '#000' || fill === '#1e293b' || fill === 'rgb(9, 13, 22)') {
+            r.setAttribute('fill', '#ffffff')
+          }
+        })
+
+        clone.querySelectorAll('svg style').forEach((st) => {
+          if (st.textContent) {
+            st.textContent = st.textContent
+              .replace(/#090d16/g, '#ffffff')
+              .replace(/#0f172a/g, '#ffffff')
+              .replace(/#1e293b/g, '#f8fafc')
+              .replace(/#f1f5f9/g, '#0f172a')
+              .replace(/#f8fafc/g, '#0f172a')
+          }
+        })
+
         if (!isViewport) {
           clone.style.width = `${targetWidth}px`
           clone.style.height = `${targetHeight}px`

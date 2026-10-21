@@ -170,7 +170,7 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps): JSX.Element 
         </div>
 
         {/* Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-5">
           {/* Hero: Icon + Title + Version + Check for Updates */}
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 via-background to-primary/5 p-1 border border-border/70 shadow-lg shrink-0 flex items-center justify-center overflow-hidden group">
@@ -316,7 +316,7 @@ export function AboutDialog({ isOpen, onClose }: AboutDialogProps): JSX.Element 
 
               {/* Release Notes expansion */}
               {showNotes && updaterState.info?.releaseNotes && (
-                <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border/50 text-[11px] text-muted-foreground max-h-36 overflow-y-auto whitespace-pre-wrap font-mono">
+                <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border/50 text-[11px] text-muted-foreground max-h-36 overflow-y-auto scrollbar-thin whitespace-pre-wrap font-mono">
                   {updaterState.info.releaseNotes}
                 </div>
               )}

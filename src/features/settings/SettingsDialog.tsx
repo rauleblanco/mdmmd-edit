@@ -195,7 +195,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps): JSX.El
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-6">
           {activeTab === 'general' && (
             <div className="space-y-6">
               {/* UI Theme */}
