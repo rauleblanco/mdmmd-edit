@@ -1,6 +1,6 @@
 import { app, BrowserWindow, shell, ipcMain } from 'electron'
 import { join } from 'path'
-import { createWriteStream, existsSync, mkdirSync, unlinkSync, statSync } from 'fs'
+import { createWriteStream, existsSync, mkdirSync, unlinkSync, statSync, writeFileSync } from 'fs'
 import { get as httpsGet, RequestOptions } from 'https'
 import { spawn } from 'child_process'
 
@@ -405,6 +405,35 @@ class AppUpdater {
   }
 
   /**
+   * Resolves the installation path of the active .app bundle on macOS
+   */
+  private getTargetAppPath(): string {
+    const defaultPath = '/Applications/mdmmd Edit.app'
+    try {
+      const execPath = process.execPath
+      const match = execPath.match(/^(.+?\.app)(\/|$)/i)
+      if (match) {
+        const detected = match[1]
+        // If running directly inside a mounted volume (/Volumes/...), default to /Applications
+        if (!detected.startsWith('/Volumes/')) {
+          return detected
+        }
+      }
+    } catch {
+      // fallback below
+    }
+
+    if (existsSync('/Applications/mdmmd Edit.app')) {
+      return '/Applications/mdmmd Edit.app'
+    }
+    if (existsSync('/Applications/mdmmd-edit.app')) {
+      return '/Applications/mdmmd-edit.app'
+    }
+
+    return defaultPath
+  }
+
+  /**
    * Applies the downloaded update and prompts restart
    */
   public async installUpdate(): Promise<void> {
@@ -431,8 +460,114 @@ class AppUpdater {
         child.unref()
         app.quit()
       } else if (platform === 'darwin') {
-        // On macOS, open the DMG or archive in Finder so user can copy to Applications
-        await shell.openPath(filePath)
+        // On macOS, silently mount the DMG or archive in background, replace the .app, and relaunch
+        const tempDir = join(app.getPath('temp'), 'mdmmd-edit-updater')
+        const targetApp = this.getTargetAppPath()
+        const scriptPath = join(tempDir, 'install_mac_update.sh')
+
+        const scriptContent = `#!/bin/bash
+PID="${process.pid}"
+DMG_PATH="${filePath}"
+TARGET_APP="${targetApp}"
+TEMP_DIR="${tempDir}"
+LOG_FILE="${tempDir}/updater.log"
+
+echo "=== Auto-updater started at $(date) for PID $PID ===" > "$LOG_FILE" 2>&1
+echo "Target app: $TARGET_APP" >> "$LOG_FILE" 2>&1
+echo "Installer: $DMG_PATH" >> "$LOG_FILE" 2>&1
+
+# Wait for current app process to terminate
+COUNT=0
+while kill -0 "$PID" 2>/dev/null; do
+  sleep 0.5
+  COUNT=$((COUNT + 1))
+  if [ $COUNT -gt 40 ]; then
+    kill -9 "$PID" 2>/dev/null || true
+    break
+  fi
+done
+
+sleep 1
+
+COPY_SUCCESS=0
+ATTACHED_MOUNT=""
+
+if [[ "$DMG_PATH" == *.dmg ]]; then
+  echo "Attaching DMG silently..." >> "$LOG_FILE"
+  ATTACH_OUT=$(hdiutil attach "$DMG_PATH" -nobrowse -noautoopen -noverify 2>> "$LOG_FILE" || true)
+  echo "Attach output: $ATTACH_OUT" >> "$LOG_FILE"
+  
+  ATTACHED_MOUNT=$(echo "$ATTACH_OUT" | awk -F'\t' '{print $NF}' | grep '^/Volumes/' | head -n 1)
+  if [ -z "$ATTACHED_MOUNT" ]; then
+    ATTACHED_MOUNT=$(echo "$ATTACH_OUT" | grep -o '/Volumes/.*' | head -n 1)
+  fi
+  
+  if [ -n "$ATTACHED_MOUNT" ] && [ -d "$ATTACHED_MOUNT" ]; then
+    SOURCE_APP=$(find "$ATTACHED_MOUNT" -maxdepth 2 -name "*.app" | head -n 1)
+    echo "Found source app in volume: $SOURCE_APP" >> "$LOG_FILE"
+    
+    if [ -n "$SOURCE_APP" ] && [ -d "$SOURCE_APP" ]; then
+      TARGET_DIR=$(dirname "$TARGET_APP")
+      mkdir -p "$TARGET_DIR" 2>> "$LOG_FILE" || true
+      
+      echo "Copying into $TARGET_APP with ditto..." >> "$LOG_FILE"
+      rm -rf "$TARGET_APP" 2>> "$LOG_FILE" || true
+      
+      if ditto "$SOURCE_APP" "$TARGET_APP" 2>> "$LOG_FILE"; then
+        echo "Direct copy succeeded" >> "$LOG_FILE"
+        xattr -r -d com.apple.quarantine "$TARGET_APP" 2>/dev/null || true
+        COPY_SUCCESS=1
+      else
+        echo "Direct copy failed, requesting administrator privileges..." >> "$LOG_FILE"
+        if osascript -e "do shell script \"rm -rf \\\"$TARGET_APP\\\" && ditto \\\"$SOURCE_APP\\\" \\\"$TARGET_APP\\\" && xattr -r -d com.apple.quarantine \\\"$TARGET_APP\\\"\" with administrator privileges" 2>> "$LOG_FILE"; then
+          echo "Privileged copy succeeded" >> "$LOG_FILE"
+          COPY_SUCCESS=1
+        fi
+      fi
+    fi
+    
+    echo "Unmounting DMG: $ATTACHED_MOUNT..." >> "$LOG_FILE"
+    hdiutil detach "$ATTACHED_MOUNT" -force -quiet 2>> "$LOG_FILE" || true
+  fi
+
+elif [[ "$DMG_PATH" == *.zip ]] || [[ "$DMG_PATH" == *.tar.gz ]]; then
+  EXTRACT_DIR="$TEMP_DIR/extracted_app"
+  rm -rf "$EXTRACT_DIR" 2>/dev/null || true
+  mkdir -p "$EXTRACT_DIR"
+  
+  if [[ "$DMG_PATH" == *.zip ]]; then
+    unzip -q -o "$DMG_PATH" -d "$EXTRACT_DIR" 2>> "$LOG_FILE" || true
+  else
+    tar -xzf "$DMG_PATH" -C "$EXTRACT_DIR" 2>> "$LOG_FILE" || true
+  fi
+  
+  SOURCE_APP=$(find "$EXTRACT_DIR" -maxdepth 2 -name "*.app" | head -n 1)
+  if [ -n "$SOURCE_APP" ] && [ -d "$SOURCE_APP" ]; then
+    rm -rf "$TARGET_APP" 2>> "$LOG_FILE" || true
+    if ditto "$SOURCE_APP" "$TARGET_APP" 2>> "$LOG_FILE"; then
+      xattr -r -d com.apple.quarantine "$TARGET_APP" 2>/dev/null || true
+      COPY_SUCCESS=1
+    fi
+  fi
+  rm -rf "$EXTRACT_DIR" 2>/dev/null || true
+fi
+
+if [ "$COPY_SUCCESS" -eq 1 ]; then
+  echo "Update succeeded! Launching updated app $TARGET_APP..." >> "$LOG_FILE"
+  rm -f "$DMG_PATH" 2>/dev/null || true
+  open -n "$TARGET_APP" 2>> "$LOG_FILE" || open "$TARGET_APP" 2>> "$LOG_FILE" || true
+else
+  echo "Automatic copy could not be completed, opening installer in Finder..." >> "$LOG_FILE"
+  open "$DMG_PATH" 2>> "$LOG_FILE" || true
+fi
+`
+        writeFileSync(scriptPath, scriptContent, { mode: 0o755 })
+
+        const child = spawn('/bin/bash', [scriptPath], {
+          detached: true,
+          stdio: 'ignore',
+        })
+        child.unref()
         app.quit()
       } else {
         // Linux: Make executable and launch or open folder
