@@ -8,6 +8,7 @@ import {
   Download,
   Maximize2,
   Save,
+  Info,
 } from 'lucide-react'
 import { useAppStore, type DocumentTheme } from '@/stores/appStore'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -34,6 +35,8 @@ export function TabBar({
   const zoomOut = useAppStore((s) => s.zoomOut)
   const zoomReset = useAppStore((s) => s.zoomReset)
   const toggleFocusMode = useAppStore((s) => s.toggleFocusMode)
+  const openAbout = useAppStore((s) => s.openAbout)
+  const updaterState = useAppStore((s) => s.updaterState)
 
   return (
     <div className="flex items-center justify-between border-b border-border/70 bg-muted/20 px-3 h-9 select-none shrink-0">
@@ -161,6 +164,21 @@ export function TabBar({
 
         {/* Light / Dark Mode Theme Switcher */}
         <ThemeToggle />
+
+        <div className="w-px h-3.5 bg-border/60 mx-0.5 shrink-0" />
+
+        {/* About Dialog Button */}
+        <button
+          onClick={openAbout}
+          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 flex items-center justify-center relative group"
+          title="About md/mmd Edit (Build & Updates)"
+          aria-label="About md/mmd Edit"
+        >
+          <Info className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
+          {(updaterState.status === 'available' || updaterState.status === 'downloaded') && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+          )}
+        </button>
       </div>
     </div>
   )

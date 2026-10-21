@@ -12,6 +12,42 @@ export interface FileResult {
   content: string
 }
 
+export interface UpdateInfo {
+  version: string
+  releaseName: string
+  releaseNotes: string
+  publishedAt: string
+  releaseUrl: string
+  assetName?: string
+  assetSize?: number
+  downloadUrl?: string
+}
+
+export interface DownloadProgress {
+  percent: number
+  transferred: number
+  total: number
+}
+
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'installing'
+  | 'error'
+
+export interface UpdaterState {
+  status: UpdateStatus
+  currentVersion: string
+  info: UpdateInfo | null
+  progress: DownloadProgress | null
+  error: string | null
+  downloadedFilePath: string | null
+}
+
 export interface MarkViewAPI {
   file: {
     open(): Promise<FileResult | null>
@@ -52,6 +88,13 @@ export interface MarkViewAPI {
   }
   menu?: {
     onOpenSettings(callback: (tab?: 'general' | 'editor' | 'shortcuts' | 'about') => void): () => void
+  }
+  updater: {
+    getStatus(): Promise<UpdaterState>
+    check(): Promise<UpdaterState>
+    download(): Promise<void>
+    install(): Promise<void>
+    onStatusChange(callback: (state: UpdaterState) => void): () => void
   }
   platform: NodeJS.Platform
 }
@@ -102,6 +145,19 @@ const api: MarkViewAPI = {
       ipcRenderer.on('menu:open-settings', listener)
       return () => {
         ipcRenderer.removeListener('menu:open-settings', listener)
+      }
+    },
+  },
+  updater: {
+    getStatus: () => ipcRenderer.invoke('updater:getStatus'),
+    check: () => ipcRenderer.invoke('updater:check'),
+    download: () => ipcRenderer.invoke('updater:download'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    onStatusChange: (callback: (state: UpdaterState) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, state: UpdaterState) => callback(state)
+      ipcRenderer.on('updater:status', listener)
+      return () => {
+        ipcRenderer.removeListener('updater:status', listener)
       }
     },
   },

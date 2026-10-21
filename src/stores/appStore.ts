@@ -45,6 +45,31 @@ interface AppState {
   setSettingsTab: (tab: 'general' | 'editor' | 'shortcuts' | 'about') => void
   openSettings: (tab?: 'general' | 'editor' | 'shortcuts' | 'about') => void
 
+  // Dedicated About modal
+  aboutOpen: boolean
+  setAboutOpen: (open: boolean) => void
+  openAbout: () => void
+
+  // Auto-updater state
+  updaterState: {
+    status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'installing' | 'error'
+    currentVersion: string
+    info: {
+      version: string
+      releaseName: string
+      releaseNotes: string
+      publishedAt: string
+      releaseUrl: string
+      assetName?: string
+      assetSize?: number
+      downloadUrl?: string
+    } | null
+    progress: { percent: number; transferred: number; total: number } | null
+    error: string | null
+    downloadedFilePath: string | null
+  }
+  setUpdaterState: (state: Partial<AppState['updaterState']>) => void
+
   // Find / Search in document
   findOpen: boolean
   setFindOpen: (open: boolean) => void
@@ -95,6 +120,23 @@ export const useAppStore = create<AppState>((set) => ({
   settingsTab: 'general',
   setSettingsTab: (settingsTab) => set({ settingsTab }),
   openSettings: (tab) => set((s) => ({ settingsOpen: true, settingsTab: tab ?? s.settingsTab })),
+
+  aboutOpen: false,
+  setAboutOpen: (aboutOpen) => set({ aboutOpen }),
+  openAbout: () => set({ aboutOpen: true }),
+
+  updaterState: {
+    status: 'idle',
+    currentVersion:
+      import.meta.env.VITE_DISPLAY_VERSION ||
+      `v${import.meta.env.VITE_APP_VERSION || '1.0.0'}`,
+    info: null,
+    progress: null,
+    error: null,
+    downloadedFilePath: null,
+  },
+  setUpdaterState: (partialState) =>
+    set((s) => ({ updaterState: { ...s.updaterState, ...partialState } })),
 
   findOpen: false,
   setFindOpen: (findOpen) => set({ findOpen }),

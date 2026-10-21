@@ -11,6 +11,8 @@ import { Editor } from '@/features/editor/Editor'
 import { CommandPalette } from '@/components/CommandPalette'
 import { ExportDialog } from '@/features/export/ExportDialog'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
+import { AboutDialog } from '@/components/AboutDialog'
+import { UpdateBanner } from '@/components/UpdateBanner'
 import { FindBar } from '@/components/FindBar'
 import { SplitResizer } from '@/components/SplitResizer'
 import {
@@ -98,6 +100,10 @@ export default function App(): JSX.Element {
   const settingsOpen = useAppStore((s) => s.settingsOpen)
   const setSettingsOpen = useAppStore((s) => s.setSettingsOpen)
   const openSettings = useAppStore((s) => s.openSettings)
+  const aboutOpen = useAppStore((s) => s.aboutOpen)
+  const setAboutOpen = useAppStore((s) => s.setAboutOpen)
+  const openAbout = useAppStore((s) => s.openAbout)
+  const setUpdaterState = useAppStore((s) => s.setUpdaterState)
   const findOpen = useAppStore((s) => s.findOpen)
   const setFindOpen = useAppStore((s) => s.setFindOpen)
   const splitRatio = useAppStore((s) => s.splitRatio)
@@ -155,12 +161,33 @@ export default function App(): JSX.Element {
     const menuAPI = window.mdmmd?.menu || window.mermak?.menu || window.markview?.menu
     if (!menuAPI?.onOpenSettings) return
     const unsubscribe = menuAPI.onOpenSettings((tab) => {
-      openSettings(tab)
+      if (tab === 'about') {
+        openAbout()
+      } else {
+        openSettings(tab)
+      }
     })
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe()
     }
-  }, [openSettings])
+  }, [openSettings, openAbout])
+
+  // Sync real-time updater state from Electron main process
+  useEffect(() => {
+    const updater = window.mdmmd?.updater
+    if (!updater) return
+
+    updater.getStatus().then((st) => {
+      if (st) setUpdaterState(st)
+    }).catch(() => {})
+
+    const unsubscribe = updater.onStatusChange((st) => {
+      setUpdaterState(st)
+    })
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe()
+    }
+  }, [setUpdaterState])
 
   const handleEditorChange = (newVal: string) => {
     setLiveContent(newVal)
@@ -377,6 +404,7 @@ export default function App(): JSX.Element {
       const isCmdOrCtrl = e.metaKey || e.ctrlKey
 
       if (e.key === 'Escape') {
+        if (aboutOpen) setAboutOpen(false)
         if (focusMode) toggleFocusMode()
         if (findOpen) setFindOpen(false)
         if (settingsOpen) setSettingsOpen(false)
@@ -476,6 +504,9 @@ export default function App(): JSX.Element {
           onNewTab={handleNewTab}
         />
       )}
+
+      {/* Auto-update notification banner */}
+      <UpdateBanner />
 
       {/* Document Toolbar (when not in Focus mode and at least one doc open) */}
       {!focusMode && tabs.length > 0 && (
@@ -622,7 +653,7 @@ export default function App(): JSX.Element {
 
                 {/* About icon and button under theme and preferences */}
                 <button
-                  onClick={() => openSettings('about')}
+                  onClick={openAbout}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/70 bg-card hover:bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-all shadow-2xs group"
                   title="About md/mmd Edit (Version, Website & Links)"
                 >
@@ -763,6 +794,12 @@ export default function App(): JSX.Element {
       <SettingsDialog
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+
+      {/* Dedicated About Dialog */}
+      <AboutDialog
+        isOpen={aboutOpen}
+        onClose={() => setAboutOpen(false)}
       />
 
       {/* Export Dialog */}

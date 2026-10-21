@@ -3,24 +3,24 @@ import { join } from 'path'
 import { readFile, readdir, stat } from 'fs/promises'
 import { existsSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
+import { initUpdater, getUpdater } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 let pendingFilePath: string | null = null
 
 declare const __APP_VERSION__: string
-declare const __BUILD_VERSION__: string
+declare const __DISPLAY_VERSION__: string
+declare const __BUILD_INFO__: string
+declare const __FULL_VERSION_DISPLAY__: string
 declare const __GITHUB_RUN_NUMBER__: string
 declare const __GITHUB_SHA__: string
 
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'
-const githubRunNumber = typeof __GITHUB_RUN_NUMBER__ !== 'undefined' ? __GITHUB_RUN_NUMBER__ : ''
-const githubSha = typeof __GITHUB_SHA__ !== 'undefined' ? __GITHUB_SHA__ : ''
-const buildVersion = typeof __BUILD_VERSION__ !== 'undefined' ? __BUILD_VERSION__ : `v${appVersion}`
-const fullVersionDisplay = githubRunNumber
-  ? `GitHub Actions Build #${githubRunNumber}${githubSha ? ` (${githubSha})` : ''}`
-  : buildVersion.includes('Build')
-    ? buildVersion
-    : `GitHub Actions Build: ${buildVersion}`
+const displayVersion = typeof __DISPLAY_VERSION__ !== 'undefined' ? __DISPLAY_VERSION__ : `v${appVersion}`
+const buildInfo = typeof __BUILD_INFO__ !== 'undefined' ? __BUILD_INFO__ : 'Development Build'
+const fullVersionDisplay = typeof __FULL_VERSION_DISPLAY__ !== 'undefined'
+  ? __FULL_VERSION_DISPLAY__
+  : `${displayVersion} • ${buildInfo} • Modern Markdown & Mermaid Editor`
 
 function extractFilePathFromArgv(argv: string[]): string | null {
   for (const arg of argv) {
@@ -95,15 +95,18 @@ function createWindow(): void {
           "default-src 'self'; " +
             "script-src 'self' 'unsafe-eval' 'unsafe-inline'; " +
             "style-src 'self' 'unsafe-inline'; " +
-            "img-src 'self' data: file: asset: https://github.com/sponsors/ https://avatars.githubusercontent.com; " +
+            "img-src 'self' data: file: asset: https://github.com/sponsors/ https://avatars.githubusercontent.com https://objects.githubusercontent.com; " +
             "font-src 'self' data: file: asset:; " +
             "frame-src 'self' https://github.com/sponsors/; " +
-            "connect-src 'self'; " +
+            "connect-src 'self' https://api.github.com https://github.com https://objects.githubusercontent.com; " +
             "worker-src 'self' blob:;",
         ],
       },
     })
   })
+
+  // Initialize auto-updater
+  initUpdater(displayVersion, mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
@@ -386,12 +389,12 @@ if (!gotTheLock) {
     try {
       app.setAboutPanelOptions({
         applicationName: 'md/mmd Edit',
-        applicationVersion: `v${appVersion}`,
-        version: fullVersionDisplay,
+        applicationVersion: displayVersion,
+        version: `${buildInfo} • Modern Markdown & Mermaid Editor`,
         copyright: 'Copyright © 2026 Raul E. Blanco (rauleblanco)',
         website: 'https://rauleblanco.com/mdmmd-edit',
         credits:
-          'A modern desktop application that opens, edits, renders, and exports Markdown documents (.md) and Mermaid diagrams (.mmd) with print-quality typography.',
+          'A modern desktop application that opens, edits, renders, and exports Markdown documents (.md) and Mermaid diagrams (.mmd) with print-quality typography.\n\nOpen source software under the MIT License.',
         iconPath: appIcon,
       })
     } catch {
@@ -411,6 +414,16 @@ if (!gotTheLock) {
                 if (mainWindow && !mainWindow.isDestroyed()) {
                   mainWindow.webContents.send('menu:open-settings', 'about')
                 }
+              },
+            },
+            {
+              label: 'Check for Updates...',
+              click: () => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                  mainWindow.webContents.send('menu:open-settings', 'about')
+                }
+                const updater = getUpdater()
+                updater?.checkForUpdates(true)
               },
             },
             { type: 'separator' },
@@ -448,6 +461,17 @@ if (!gotTheLock) {
         {
           role: 'help',
           submenu: [
+            {
+              label: 'Check for Updates...',
+              click: () => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                  mainWindow.webContents.send('menu:open-settings', 'about')
+                }
+                const updater = getUpdater()
+                updater?.checkForUpdates(true)
+              },
+            },
+            { type: 'separator' },
             {
               label: 'md/mmd Edit Documentation & Website',
               click: () => {

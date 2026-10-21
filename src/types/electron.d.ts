@@ -8,4 +8,12 @@ declare global {
   }
 }
 
-export type { MarkViewAPI, DirectoryEntry, FileResult } from '../../electron/preload'
+export type {
+  MarkViewAPI,
+  DirectoryEntry,
+  FileResult,
+  UpdateStatus,
+  UpdateInfo,
+  DownloadProgress,
+  UpdaterState,
+} from '../../electron/preload'

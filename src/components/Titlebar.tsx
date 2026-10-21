@@ -11,6 +11,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { useDocumentStore } from '@/stores/documentStore'
+import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/lib/utils'
 import { getPlatform } from '@/lib/utils/platform'
 
@@ -80,6 +81,8 @@ export function Titlebar({ onOpenPasteDialog, onNewTab }: TitlebarProps): JSX.El
     }
   }
 
+  const openAbout = useAppStore((s) => s.openAbout)
+
   return (
     <div
       className={cn(
@@ -91,14 +94,18 @@ export function Titlebar({ onOpenPasteDialog, onNewTab }: TitlebarProps): JSX.El
       )}
     >
       {/* App brand/logo in title bar */}
-      <div className="titlebar-drag flex items-center gap-1.5 shrink-0 mr-2 select-none">
-        <div className="w-5 h-5 rounded-md bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-2xs">
+      <button
+        onClick={openAbout}
+        className="titlebar-no-drag flex items-center gap-1.5 shrink-0 mr-2 select-none hover:opacity-85 transition-opacity p-0.5 rounded cursor-pointer group"
+        title="About md/mmd Edit (Build & Updates)"
+      >
+        <div className="w-5 h-5 rounded-md bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-2xs group-hover:scale-105 transition-transform">
           <FileText className="w-3 h-3" />
         </div>
-        <span className="text-xs font-bold tracking-tight text-foreground/80 hidden sm:inline">
+        <span className="text-xs font-bold tracking-tight text-foreground/80 hidden sm:inline group-hover:text-foreground transition-colors">
           md/mmd
         </span>
-      </div>
+      </button>
 
       <div className="w-px h-4 bg-border/60 mr-2 shrink-0 hidden sm:block" />
 
