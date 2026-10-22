@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { EditorState } from '@codemirror/state'
 import {
   EditorView,
@@ -15,6 +15,11 @@ import { MermaidInsertDialog } from './MermaidInsertDialog'
 import { TableInsertDialog } from './TableInsertDialog'
 import { isMermaidFile, isRawMermaid } from '@/lib/mermaid/renderer'
 
+export interface EditorHandle {
+  scrollToLine: (lineNumber: number) => void
+  focus: () => void
+}
+
 interface EditorProps {
   content: string
   fileName?: string
@@ -23,10 +28,35 @@ interface EditorProps {
   scrollRatio?: number
 }
 
-export function Editor({ content, fileName, onChange, onScroll, scrollRatio }: EditorProps): JSX.Element {
+export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
+  { content, fileName, onChange, onScroll, scrollRatio }: EditorProps,
+  ref
+): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const isSyncingRef = useRef(false)
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToLine: (lineNumber: number) => {
+        const view = viewRef.current
+        if (!view) return
+        const doc = view.state.doc
+        const clampedLine = Math.max(1, Math.min(lineNumber, doc.lines))
+        const line = doc.line(clampedLine)
+        view.dispatch({
+          effects: EditorView.scrollIntoView(line.from, { y: 'start' }),
+          selection: { anchor: line.from },
+        })
+        view.focus()
+      },
+      focus: () => {
+        viewRef.current?.focus()
+      },
+    }),
+    []
+  )
 
   const [mermaidDialogOpen, setMermaidDialogOpen] = useState(false)
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
@@ -306,4 +336,5 @@ export function Editor({ content, fileName, onChange, onScroll, scrollRatio }: E
       />
     </div>
   )
-}
+})
+

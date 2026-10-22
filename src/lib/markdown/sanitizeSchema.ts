@@ -11,6 +11,7 @@ import { defaultSchema } from 'rehype-sanitize'
  */
 export const customSanitizeSchema = {
   ...defaultSchema,
+  clobberPrefix: '',
   tagNames: [
     ...(defaultSchema.tagNames || []),
     'svg',

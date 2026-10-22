@@ -7,9 +7,11 @@ import { cn } from '@/lib/utils'
 
 interface SidebarProps {
   content: string
+  onNavigate?: (item: TocItem) => void
+  activeHeadingId?: string | null
 }
 
-export function Sidebar({ content }: SidebarProps): JSX.Element {
+export function Sidebar({ content, onNavigate, activeHeadingId }: SidebarProps): JSX.Element {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
 
@@ -19,10 +21,14 @@ export function Sidebar({ content }: SidebarProps): JSX.Element {
     return extractToc(content)
   }, [content])
 
-  const scrollToHeading = (id: string) => {
-    const el = document.getElementById(id)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const scrollToHeading = (item: TocItem) => {
+    if (onNavigate) {
+      onNavigate(item)
+    } else {
+      const el = document.getElementById(item.id)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
     }
   }
 
@@ -73,23 +79,33 @@ export function Sidebar({ content }: SidebarProps): JSX.Element {
           </div>
         ) : (
           <nav className="flex flex-col gap-0.5">
-            {toc.map((item, index) => (
-              <button
-                key={`${item.id}-${index}`}
-                onClick={() => scrollToHeading(item.id)}
-                style={{ paddingLeft: `${(item.level - 1) * 12 + 8}px` }}
-                className={cn(
-                  'flex items-center gap-1.5 py-1.5 pr-2 rounded-lg text-left text-xs font-medium transition-colors truncate',
-                  item.level === 1
-                    ? 'text-foreground font-semibold'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                )}
-                title={item.text}
-              >
-                <Hash className="w-3 h-3 shrink-0 opacity-40" />
-                <span className="truncate">{item.text}</span>
-              </button>
-            ))}
+            {toc.map((item, index) => {
+              const isActive = activeHeadingId === item.id
+              return (
+                <button
+                  key={`${item.id}-${index}`}
+                  onClick={() => scrollToHeading(item)}
+                  style={{ paddingLeft: `${(item.level - 1) * 12 + 8}px` }}
+                  className={cn(
+                    'group/toc flex items-center gap-1.5 py-1.5 pr-2 rounded-lg text-left text-xs font-medium transition-all truncate w-full',
+                    isActive
+                      ? 'bg-primary/15 text-primary font-semibold shadow-xs'
+                      : item.level === 1
+                        ? 'text-foreground font-semibold hover:bg-muted/60'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  )}
+                  title={item.text}
+                >
+                  <Hash
+                    className={cn(
+                      'w-3 h-3 shrink-0 transition-opacity',
+                      isActive ? 'text-primary opacity-100' : 'opacity-40 group-hover/toc:opacity-70'
+                    )}
+                  />
+                  <span className="truncate">{item.text}</span>
+                </button>
+              )
+            })}
           </nav>
         )}
       </div>

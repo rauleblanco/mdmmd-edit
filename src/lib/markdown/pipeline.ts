@@ -14,10 +14,13 @@ import rehypeStringify from 'rehype-stringify'
 import { remarkAlerts } from './plugins/remarkAlerts'
 import { customSanitizeSchema } from './sanitizeSchema'
 
+import GithubSlugger from 'github-slugger'
+
 export interface TocItem {
   id: string
   text: string
   level: number
+  line: number
 }
 
 export interface ProcessedDocument {
@@ -31,12 +34,26 @@ export interface ProcessedDocument {
  * Extract Table of Contents heading structure from raw markdown.
  */
 export function extractToc(markdown: string): TocItem[] {
+  const slugger = new GithubSlugger()
   const headings: TocItem[] = []
   const lines = markdown.split(/\r?\n/)
   let inCodeBlock = false
+  let inFrontmatter = false
 
-  for (const line of lines) {
-    if (line.trim().startsWith('```')) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (i === 0 && line.trim() === '---') {
+      inFrontmatter = true
+      continue
+    }
+    if (inFrontmatter) {
+      if (line.trim() === '---') {
+        inFrontmatter = false
+      }
+      continue
+    }
+
+    if (line.trim().startsWith('```') || line.trim().startsWith('~~~')) {
       inCodeBlock = !inCodeBlock
       continue
     }
@@ -45,17 +62,14 @@ export function extractToc(markdown: string): TocItem[] {
     const match = line.match(/^(#{1,6})\s+(.+)$/)
     if (match) {
       const level = match[1].length
-      const rawText = match[2].trim()
+      const rawText = match[2].trim().replace(/\s+#+$/, '').trim()
       // Strip markdown formatting from TOC text
       const cleanText = rawText
         .replace(/[*_~`]/g, '')
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      const id = cleanText
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/\s+/g, '-')
+      const id = slugger.slug(cleanText)
 
-      headings.push({ id, text: cleanText, level })
+      headings.push({ id, text: cleanText, level, line: i + 1 })
     }
   }
 
@@ -137,7 +151,7 @@ export async function processMarkdown(content: string): Promise<ProcessedDocumen
   // Parse frontmatter
   const { data: parsedFrontmatter, content: bodyContent } = parseFrontmatter(content)
 
-  const toc = extractToc(bodyContent)
+  const toc = extractToc(content)
 
   // Run unified pipeline
   const file = await processor.process(bodyContent)

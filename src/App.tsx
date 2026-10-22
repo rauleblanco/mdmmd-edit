@@ -7,7 +7,8 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { PasteDialog } from '@/components/PasteDialog'
 import { Sidebar } from '@/features/sidebar/Sidebar'
 import { Preview } from '@/features/preview/Preview'
-import { Editor } from '@/features/editor/Editor'
+import { Editor, type EditorHandle } from '@/features/editor/Editor'
+import type { TocItem } from '@/lib/markdown/pipeline'
 import { CommandPalette } from '@/components/CommandPalette'
 import { ExportDialog } from '@/features/export/ExportDialog'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
@@ -80,6 +81,9 @@ export default function App(): JSX.Element {
   const previewContentRef = useRef<HTMLDivElement>(null)
   const splitContainerRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const editorRef = useRef<EditorHandle>(null)
+  const isNavigatingOutlineRef = useRef(false)
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null)
 
   const tabs = useDocumentStore((s) => s.tabs)
   const activeTabId = useDocumentStore((s) => s.activeTabId)
@@ -117,6 +121,7 @@ export default function App(): JSX.Element {
     if (activeTab) {
       setLiveContent(activeTab.content)
     }
+    setActiveHeadingId(null)
   }, [activeTab?.id])
 
   // Check for initial file and listen for files opened via OS association (Windows/Mac/Linux)
@@ -398,6 +403,38 @@ export default function App(): JSX.Element {
     setExportDialogOpen(true)
   }, [])
 
+  // Outline navigation handler: precisely scrolls editor and preview in sync
+  const handleNavigateHeading = useCallback(
+    (item: TocItem) => {
+      setActiveHeadingId(item.id)
+      isNavigatingOutlineRef.current = true
+
+      // 1. In editor or split mode: smoothly jump editor to heading line
+      if (editorRef.current && item.line) {
+        editorRef.current.scrollToLine(item.line)
+      }
+
+      // 2. In preview or split mode: smoothly scroll preview to heading
+      if (viewMode === 'preview' || viewMode === 'split') {
+        const previewContainer = previewContainerRef.current
+        if (previewContainer) {
+          const el =
+            (previewContainer.querySelector(`[id="${CSS.escape(item.id)}"]`) as HTMLElement | null) ||
+            document.getElementById(item.id)
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }
+      }
+
+      // Re-enable scroll sync once programmatic outline scroll animation completes
+      setTimeout(() => {
+        isNavigatingOutlineRef.current = false
+      }, 600)
+    },
+    [viewMode]
+  )
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -667,7 +704,13 @@ export default function App(): JSX.Element {
           /* Active Document Workspace */
           <>
             {/* Sidebar with Table of Contents (hidden in focus mode) */}
-            {!focusMode && <Sidebar content={liveContent} />}
+            {!focusMode && (
+              <Sidebar
+                content={liveContent}
+                onNavigate={handleNavigateHeading}
+                activeHeadingId={activeHeadingId}
+              />
+            )}
 
             {/* Editor / Split / Preview View Workspace */}
             <main className="flex-1 flex overflow-hidden">
@@ -697,6 +740,7 @@ export default function App(): JSX.Element {
                 <>
                   <div className="flex-1 h-full overflow-hidden">
                     <Editor
+                      ref={editorRef}
                       content={liveContent}
                       fileName={activeTab?.fileName}
                       onChange={handleEditorChange}
@@ -728,10 +772,15 @@ export default function App(): JSX.Element {
                     className="h-full overflow-hidden min-w-0"
                   >
                     <Editor
+                      ref={editorRef}
                       content={liveContent}
                       fileName={activeTab?.fileName}
                       onChange={handleEditorChange}
-                      onScroll={(r) => setEditorScrollRatio(r)}
+                      onScroll={(r) => {
+                        if (!isNavigatingOutlineRef.current) {
+                          setEditorScrollRatio(r)
+                        }
+                      }}
                       scrollRatio={previewScrollRatio}
                     />
                   </div>
@@ -752,7 +801,11 @@ export default function App(): JSX.Element {
                       fileName={activeTab?.fileName}
                       scrollRef={previewContainerRef}
                       contentRef={previewContentRef}
-                      onScroll={(r) => setPreviewScrollRatio(r)}
+                      onScroll={(r) => {
+                        if (!isNavigatingOutlineRef.current) {
+                          setPreviewScrollRatio(r)
+                        }
+                      }}
                       scrollRatio={editorScrollRatio}
                       onExportElement={handleExportElement}
                     />
