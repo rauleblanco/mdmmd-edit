@@ -97,9 +97,10 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "overrides": {
+    "dompurify": "^3.4.17",
     "katex": "^0.18.2",
     "postcss-selector-parser": "^7.1.6",
     "roarr": "^3.3.0"
