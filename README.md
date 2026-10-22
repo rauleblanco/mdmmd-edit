@@ -172,6 +172,54 @@ Configure the following secrets for Windows Authenticode signing:
 
 ---
 
+## 🔄 Updates, macOS Background Activity & Privacy
+
+### 🔒 Privacy & Zero-Telemetry Commitment
+`mdmmd Edit` is built as an offline-first desktop editor with strict respect for user privacy:
+- **No Telemetry or Analytics**: There are zero tracking pixels, analytics beacons, crash-telemetry daemons, or marketing identifiers embedded in this application.
+- **No Unrelated Background Tasks**: When the application window is closed (`Cmd+Q`), no background processes, listeners, or helper daemons remain running.
+- **Update Checks Only**: The only network communication performed is an optional check against GitHub's public API (`https://api.github.com/repos/rauleblanco/mdmmd-edit/releases/latest`) to notify you when a newer version or build is available, and downloading the update artifact when you explicitly click to install it.
+
+---
+
+### 🍎 macOS "Background Items Added" Notification
+
+On **macOS Ventura (13.0)**, **Sonoma (14.0)**, and **Sequoia (15.0)**, installing Build 37 or newer may trigger an Apple system notification:
+> *"mdmmd Edit added items that can run in the background. You can manage this in Login Items Settings."*
+
+#### Why does this happen?
+- `mdmmd Edit` desktop releases are distributed as ad-hoc signed binaries (`APPLE_SIGNING_IDENTITY: "-"`), which cannot use Apple's proprietary notarized Squirrel update server.
+- To enable seamless 1-click in-app updating, the app writes a temporary detached updater script (`install_mac_update.sh`) that mounts the downloaded `.dmg` (`hdiutil attach`), replaces the `.app` bundle inside `/Applications` using `ditto`, and relaunches the application.
+- macOS's Background Task Management (BTM) daemon detects this detached updater capability and automatically categorizes the app under **Login Items & Extensions → Allow in the Background**.
+
+---
+
+### ⚙️ Option 1: Allowing Background Activity (Automated In-Place Updates)
+
+If you want the in-app 1-click update feature to download, replace, and relaunch automatically:
+
+1. Open **System Settings** on your Mac.
+2. Navigate to **General → Login Items & Extensions**.
+3. Under **Allow in the Background**, verify that **mdmmd Edit** is set to **On**.
+4. *(Optional)* If `mdmmd Edit` is listed under **Open at Login**, you can select it and click the **`—` (minus)** button to remove it. The application does **not** need to open at login.
+
+---
+
+### 🛠️ Option 2: Disabling Background Activity & Performing Manual Updates
+
+If you prefer not to grant background execution permissions, you can safely turn it off with zero impact on the editor:
+
+1. In macOS **System Settings → General → Login Items & Extensions**:
+   - Under **Allow in the Background**, toggle **mdmmd Edit** to **Off**.
+   - Under **Open at Login**, remove **mdmmd Edit** if present.
+2. The application will continue to run normally with full editing, previewing, and export functionality.
+
+#### How to update manually:
+- **In-App Notification**: Click **md/mmd Edit → Check for Updates...** in the menu bar, or navigate to **Preferences (`Cmd+,`) → About**. When an update is detected, click the release link to open the GitHub Release page in your browser.
+- **Direct Download**: Download the latest `mdmmd Edit-*.dmg` from the [GitHub Releases page](https://github.com/rauleblanco/mdmmd-edit/releases), open the disk image, and drag `mdmmd Edit.app` into your `/Applications` folder (select **Replace**).
+
+---
+
 ## ⌨️ Keyboard Shortcuts Reference
 
 | Shortcut | Action |
